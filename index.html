@@ -3,8 +3,12 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<style>body{margin:0}img{max-width:100%}[hidden]{display:none!important}:root{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}/* home screen, as in Borderline: today's list, then Solo, then quick rules */
-.hrow.one{grid-template-columns:1fr}
+<style>body{margin:0}img{max-width:100%}[hidden]{display:none!important}:root{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}/* home screen, as in Borderline: today's list open and playable, then Solo and With friends, then quick rules */
+.hcard.play:hover{background:var(--sheet);border-color:var(--sea)}
+.field #fname{width:100%;border:1.5px solid var(--ink);border-radius:5px;padding:12px;font-size:1.05rem;background:var(--paper)}
+.dplay{width:100%;display:flex;flex-direction:column;gap:10px;margin-top:8px}
+.wrongs .pin{display:inline-block;vertical-align:middle}
+.t10list .nm .pin{flex:none}
 </style>
 <title>Top 10 · Borderline</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -40,6 +44,10 @@
 <footer class="foot"><a class="linkbtn" href="../borderline/">Data and sources: Credits in Borderline</a></footer>
 <div id="layer"></div>
 
+<!-- online rooms (With friends): Firebase, loaded after the page so today's list shows at once -->
+<script defer src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script defer src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js"></script>
+<script defer src="firebase-config.js?v=202610192300"></script>
 <script src="data.js?v=202610192100"></script>
 <script src="games.js?v=202610192200"></script>
 <script src="minigames.js?v=202610192100"></script>
@@ -93,18 +101,21 @@ function newGame(mode,l){const r=ranking(l);
   if(mode==='daily'){S.date=todayKey();S.num=dayNum(S.date,T10_FIRST)}
   return S}
 
-/* ---- state ---- */
-let S=null,mode='daily',view='home',query='',fresh=null;
+/* ---- state ----
+   view: 'home' (today's list open and playable, then Solo and With friends), 'game' (a list on its own screen) or 'friends' (online rooms) */
+let S=null,mode='daily',view='home',query='',fresh=null,typing=false;
 const dailySaved=()=>{const d=load('t10-daily',null);return d&&d.date===todayKey()?d.S:null};
-function save(){if(!S)return;
+function save(){if(!S||S.mode==='online')return;
   if(S.mode==='daily'){store('t10-daily',{date:S.date,over:S.over,S});
     if(S.over){const h=load('t10-hist',{});if(!h[S.date]){h[S.date]={f:S.found.length,l:S.lives};store('t10-hist',h)}}}
   else store('t10-free',S)}
-function openDaily(){view='game';mode='daily';S=dailySaved()||newGame('daily',dailyList(todayKey()));query='';render()}
+// today's game, saved or new (a new one is saved at the first answer)
+function dailyGame(){const d=dailySaved();return d&&d.date===todayKey()?d:newGame('daily',dailyList(todayKey()))}
+function openDaily(){view='game';mode='daily';S=dailyGame();query='';render();window.scrollTo(0,0)}
 function openFree(id){view='game';mode='free';const f=load('t10-free',null);
   if(!id&&f&&!f.over&&listById(f.list))S=f;
   else{const l=id&&listById(id)||(()=>{const o=LISTS.filter(x=>!S||x.id!==S.list);return o[Math.floor(Math.random()*o.length)]})();S=newGame('free',l)}
-  query='';save();render()}
+  query='';save();render();window.scrollTo(0,0)}
 
 /* ---- the search box: names only, found by their first letters, like Borderline ---- */
 function matches(q){const k=N(q);if(!k)return[];return SOVC.filter(c=>c.k.startsWith(k)||c.ak.some(a=>a.startsWith(k))).slice(0,8)}
@@ -114,13 +125,15 @@ function suggHTML(){if(!query)return '';const res=matches(query);
     return `<li><button data-g="${c.c}" ${f||w?'disabled':''}>${esc(c.n)}${f?'<span class="tag">found</span>':w?'<span class="tag">not in it</span>':''}</button></li>`}).join('')}
 function guess(code){if(!S||S.over)return;const c=byCode[code];
   if(S.found.includes(code)||S.wrong.includes(code)){toast('You already tried '+c.n+'.');return}
-  query='';
+  query='';typing=true;
+  if(S.mode==='online'){onlineGuess(code);return}
   const i=S.top.indexOf(code);
-  if(i>=0){S.found.push(code);fresh=code;if(S.found.length===10){S.over=true;S.won=true}
-    save();render();toast(S.won?'All ten!':`#${i+1} · ${c.n}`,'good');return}
-  S.wrong.push(code);S.lives--;
-  if(S.lives<=0)S.over=true;
-  save();render();
+  if(i>=0){S.found.push(code);fresh=code;if(S.found.length===10){S.over=true;S.won=true}}
+  else{S.wrong.push(code);S.lives--;if(S.lives<=0)S.over=true}
+  // today's list played on the home screen: when it ends, the result opens on its own screen
+  if(S.over&&view==='home')view='game';
+  save();render();if(S.over)window.scrollTo(0,0);
+  if(i>=0){toast(S.won?'All ten!':`#${i+1} · ${c.n}`,'good');return}
   const r=ranking(listById(S.list)).findIndex(x=>x.c===code);
   toast(`${c.n} is not in the top 10${r>=0?` (it is #${r+1})`:' (no figure for it)'}.`,'bad')}
 
@@ -131,37 +144,231 @@ function shareText(){const l=listById(S.list);
 const shareLink=()=>S.mode==='daily'?pageLink():pageLink('?l='+S.list);
 const shareMessage=()=>shareText()+'\n\n'+(S.mode==='daily'?"Play today's Top 10: ":'Play this list: ')+shareLink();
 
+/* ---- online rooms (With friends), on the same Firebase Realtime Database as Borderline ----
+   A room lives at rooms/ABCD, like Borderline's, marked game:'top10' so the two games never open each other's rooms.
+   Players take turns naming a country: one in the top 10 scores a point for whoever named it,
+   one outside costs that player one of their lives. The game ends when the ten are found, everyone is out of lives or everyone passes. */
+const FB_OK=()=>typeof firebase!=='undefined'&&typeof firebase.database==='function'&&!!(window.FIREBASE_CONFIG&&/^https:\/\//.test(FIREBASE_CONFIG.databaseURL||''));
+const ROOM_V='t10-202610192300',MAXP=6,TIMERS=[0,15,30];
+let db=null,room=null,roomRef=null,roomCode=null,seenEv=null,firstSync=true,joining=false,offset=0,tick=null;
+const now=()=>Date.now()+offset;
+let ME=load('t10-pid','');if(!ME){ME='p'+Math.random().toString(36).slice(2,10);store('t10-pid',ME)}
+// the name the others see: the one typed here before, or the one used in Borderline's rooms on this device
+const setup={fname:'',timer:0,join:'',...load('t10-setup',{})};
+if(!setup.fname)try{setup.fname=(JSON.parse(localStorage.getItem('bl-setup')||'{}')||{}).fname||localStorage.getItem('bl-user')||''}catch(e){}
+if(!TIMERS.includes(setup.timer))setup.timer=0;
+function initFB(){if(db)return true;if(!FB_OK())return false;
+  try{if(!firebase.apps.length)firebase.initializeApp(FIREBASE_CONFIG);db=firebase.database();db.ref('.info/serverTimeOffset').on('value',s=>{offset=s.val()||0})}catch(e){console.error(e);return false}
+  return true}
+const TS=()=>firebase.database.ServerValue.TIMESTAMP;
+const LET='ABCDEFGHJKLMNPQRSTUVWXYZ',randRoom=()=>[...Array(4)].map(()=>LET[Math.floor(Math.random()*LET.length)]).join('');
+const evId=()=>Math.random().toString(36).slice(2,9);
+const pinStyle=i=>`background:var(--p${i%6})`;
+const lobbyOrder=r=>Object.entries(r.players||{}).sort((a,b)=>(a[1].t||0)-(b[1].t||0)).map(x=>x[0]);
+const livesOf=(r,pid)=>{const v=(r.lives||{})[pid];return v==null?LIVES:v};
+const topOf=id=>ranking(listById(id)).slice(0,10).map(x=>x.c);
+const randomList=not=>{const o=LISTS.filter(x=>x.id!==not);return o[Math.floor(Math.random()*o.length)].id};
+function saveSetup(){const el=$('fname');if(el)setup.fname=el.value.trim().slice(0,16);store('t10-setup',{fname:setup.fname,timer:setup.timer})}
+function needName(){saveSetup();if(setup.fname)return false;
+  toast("Type your name so your friends know who's playing.",'bad');const el=$('fname');if(el)el.focus();return true}
+async function createRoom(){
+  if(needName())return;
+  if(!initFB()){toast('Online play is not available right now. Check the connection and reload.','bad');return}
+  try{let code='';
+    for(let i=0;i<8;i++){code=randRoom();const ex=await db.ref('rooms/'+code).get();if(!ex.exists())break}
+    await db.ref('rooms/'+code).set({game:'top10',v:ROOM_V,host:ME,created:TS(),cfg:{timer:setup.timer},status:'lobby',
+      players:{[ME]:{name:setup.fname,t:TS(),on:true}}});
+    listenRoom(code)}catch(e){console.error(e);toast('Could not create the room. Check the connection and try again.','bad')}}
+async function joinRoom(raw){
+  const code=(raw||'').toUpperCase().replace(/[^A-Z]/g,'');
+  if(code.length!==4){toast('Room codes have 4 letters.','bad');return}
+  if(needName())return;
+  if(!initFB()){toast('Online play is not available right now. Check the connection and reload.','bad');return}
+  if(joining)return;joining=true;
+  try{let why='';
+    const res=await db.ref('rooms/'+code).transaction(r=>{
+      if(!r)return r;
+      if(r.game!=='top10'){why='other';return}
+      if(r.v!==ROOM_V){why='version';return}
+      r.players=r.players||{};
+      if(r.players[ME]){r.players[ME].name=setup.fname;r.players[ME].on=true;return r}
+      if(r.status!=='lobby'){why='started';return}
+      if(Object.keys(r.players).length>=MAXP){why='full';return}
+      r.players[ME]={name:setup.fname,t:now(),on:true};return r});
+    const val=res.snapshot.val();
+    if(!val){toast('No room called '+code+'. Check the code.','bad');return}
+    if(!res.committed||!val.players||!val.players[ME]){
+      toast(why==='other'?code+' is a room of another game (Borderline?). Open that game to join it.':why==='version'?'You and the host have different versions of the game. Both of you reload the page, then try again.':why==='full'?'Room '+code+' already has '+MAXP+' players.':why==='started'?'That game has already started. Ask the host for a rematch.':'Could not join '+code+'.','bad');return}
+    listenRoom(code)}catch(e){console.error(e);toast('Could not join. Check the connection and try again.','bad')}
+  finally{joining=false}}
+function listenRoom(code){
+  if(roomRef)roomRef.off();
+  roomCode=code;roomRef=db.ref('rooms/'+code);firstSync=true;seenEv=null;view='friends';setup.join='';
+  try{localStorage.setItem('t10-room',code)}catch(e){}
+  try{const u=new URL(location.href);if(u.searchParams.has('room')){u.searchParams.delete('room');history.replaceState(null,'',u.pathname+u.search)}}catch(e){}
+  const me=roomRef.child('players/'+ME+'/on');me.onDisconnect().set(false);
+  db.ref('.info/connected').on('value',s=>{if(s.val()&&roomCode===code){me.onDisconnect().set(false);roomRef.child('players/'+ME).once('value',p=>{if(p.exists())me.set(true)})}});
+  roomRef.on('value',snap=>{const r=snap.val();
+    if(!r||!r.players||!r.players[ME]){const was=roomCode;dropRoom();
+      if(was)toast(r?'You are no longer in room '+was+'.':'Room '+was+' was closed.','bad');render();return}
+    room=r;syncRoom()})}
+function dropRoom(){
+  if(roomRef){roomRef.off();try{roomRef.child('players/'+ME+'/on').onDisconnect().cancel()}catch(e){}}
+  room=null;roomRef=null;roomCode=null;if(S&&S.mode==='online')S=null;clearInterval(tick);
+  try{localStorage.removeItem('t10-room')}catch(e){}}
+async function leaveRoom(){const ref=roomRef;
+  if(ref&&room&&room.status==='lobby'){
+    try{await ref.transaction(r=>{if(!r)return r;if(r.players)delete r.players[ME];
+      const left=lobbyOrder(r);if(!left.length)return null;if(r.host===ME)r.host=left[0];return r})}catch(e){}}
+  else if(ref){try{await ref.child('players/'+ME+'/on').set(false)}catch(e){}}
+  dropRoom();view='friends';render()}
+// the room as a game state, rebuilt on every change
+function syncRoom(){const r=room;
+  if(r.status==='lobby'||!listById(r.list)){S=null;clearInterval(tick);render();return}
+  const order=r.order||lobbyOrder(r),fd=r.found||{},wr=r.wrong||{},byK=o=>Object.keys(o).sort((a,b)=>o[a].k-o[b].k);
+  const players=order.map((pid,i)=>{const p=r.players[pid]||{};
+    return {pid,name:p.name||'Gone',on:p.on!==false,lives:livesOf(r,pid),score:Object.values(fd).filter(x=>x.o===i).length,miss:Object.values(wr).filter(x=>x.o===i).length}});
+  const me=order.indexOf(ME);
+  S={mode:'online',list:r.list,top:topOf(r.list),found:byK(fd),wrong:byK(wr),by:Object.fromEntries([...Object.entries(fd),...Object.entries(wr)].map(([c,x])=>[c,x.o])),
+     players,turn:r.turn||0,timer:r.cfg.timer||0,deadline:r.deadline||0,over:r.status==='over',me,host:r.host===ME,lives:me>=0?players[me].lives:0};
+  S.won=S.found.length===10;
+  if(r.ev&&r.ev.id!==seenEv){if(!firstSync){toast(r.ev.text,r.ev.kind);if(r.ev.kind==='good'&&r.ev.c)fresh=r.ev.c}seenEv=r.ev.id}
+  firstSync=false;
+  if(S.over||S.turn!==S.me)query='';
+  clearInterval(tick);if(S.timer&&!S.over)tick=setInterval(onTick,250);
+  render()}
+// next turn: the next player with lives left (online players first); the game ends when nobody can play on
+function advance(r){const order=r.order,len=order.length,alive=i=>livesOf(r,order[i])>0;
+  const nAlive=order.filter((_,i)=>alive(i)).length;
+  if(Object.keys(r.found||{}).length>=10||!nAlive||(r.passes||0)>=nAlive){r.status='over';r.deadline=0;return}
+  const t=r.turn||0;let next=-1;
+  for(let s=1;s<=len&&next<0;s++){const i=(t+s)%len;if(alive(i)&&(r.players[order[i]]||{}).on!==false)next=i}
+  for(let s=1;s<=len&&next<0;s++){const i=(t+s)%len;if(alive(i))next=i}
+  r.turn=next;r.deadline=r.cfg.timer?now()+r.cfg.timer*1000:0}
+async function onlineGuess(code){const c=byCode[code];let note='';
+  try{const res=await roomRef.transaction(r=>{
+      if(!r)return r;
+      if(r.status!=='playing'){note='over';return}
+      if(r.order[r.turn||0]!==ME){note='turn';return}
+      r.found=r.found||{};r.wrong=r.wrong||{};
+      if(r.found[code]||r.wrong[code]){note='tried';return}
+      const nm=(r.players[ME]||{}).name||'Someone',top=topOf(r.list),i=top.indexOf(code);
+      r.k=(r.k||0)+1;r.passes=0;
+      if(i>=0){r.found[code]={o:r.turn||0,k:r.k};r.ev={id:evId(),kind:'good',c:code,text:`${nm}: ${c.n} is #${i+1}.`}}
+      else{r.wrong[code]={o:r.turn||0,k:r.k};r.lives=r.lives||{};r.lives[ME]=livesOf(r,ME)-1;
+        const k=ranking(listById(r.list)).findIndex(x=>x.c===code);
+        r.ev={id:evId(),kind:'bad',text:`${nm}: ${c.n} is not in the top 10${k>=0?` (#${k+1})`:''}.${r.lives[ME]<=0?' Out of lives.':''}`}}
+      advance(r);return r});
+    if(!res.committed)toast(note==='turn'?'It is not your turn any more.':note==='tried'?c.n+' was already named.':'The game is over.','bad')}
+  catch(e){console.error(e);toast('That answer did not go through. Check the connection.','bad')}}
+async function onlineAct(kind){
+  try{await roomRef.transaction(r=>{
+    if(!r)return r;
+    const nm=(r.players[ME]||{}).name||'Someone',cur=r.order&&r.order[r.turn||0];
+    if(kind==='pass'){if(r.status!=='playing'||cur!==ME)return;r.passes=(r.passes||0)+1;r.ev={id:evId(),kind:'',text:nm+' passed.'};advance(r);return r}
+    // anyone can move the game on when the player whose turn it is has left
+    if(kind==='skip'){if(r.status!=='playing'||!cur||(r.players[cur]||{}).on!==false)return;
+      r.passes=(r.passes||0)+1;r.ev={id:evId(),kind:'',text:((r.players[cur]||{}).name||'Someone')+' is offline: turn skipped.'};advance(r);return r}
+    if(kind==='end'){if(r.status!=='playing'||r.host!==ME)return;r.status='over';r.deadline=0;r.ev={id:evId(),kind:'',text:nm+' ended the game.'};return r}
+    if(kind==='start'||kind==='rematch'){if(r.host!==ME)return;
+      const order=(kind==='start'?lobbyOrder(r):(r.order||lobbyOrder(r))).filter(pid=>r.players[pid]&&(kind==='start'||r.players[pid].on!==false));
+      if(order.length<2)return;
+      r.order=order;r.list=randomList(r.list);r.v=ROOM_V;r.found=null;r.wrong=null;r.lives=null;r.k=0;r.passes=0;r.turn=0;r.status='playing';
+      r.deadline=r.cfg.timer?now()+r.cfg.timer*1000:0;
+      r.ev={id:evId(),kind:'',text:kind==='start'?'Game on. '+r.players[order[0]].name+' starts.':'Rematch: a new list.'};return r}
+    if(kind==='lobby'){if(r.host!==ME)return;r.status='lobby';r.order=null;r.list=null;r.found=null;r.wrong=null;r.lives=null;r.deadline=0;return r}
+  })}catch(e){console.error(e);toast('That did not go through. Check the connection.','bad')}}
+async function tryTimeout(turn,deadline){
+  if(!roomRef||tryTimeout.busy===deadline)return;tryTimeout.busy=deadline;
+  try{await roomRef.transaction(r=>{
+    if(!r)return r;
+    if(r.status!=='playing'||(r.turn||0)!==turn||r.deadline!==deadline||now()<deadline)return;
+    r.passes=(r.passes||0)+1;r.ev={id:evId(),kind:'bad',text:"Time's up for "+((r.players[r.order[turn]]||{}).name||'someone')+'.'};advance(r);return r})}catch(e){}}
+function onTick(){if(!S||S.mode!=='online'||S.over||!S.timer){clearInterval(tick);return}
+  const left=S.deadline-now(),bar=document.querySelector('.tbar'),sub=$('tleft');
+  if(bar)bar.style.width=Math.max(0,left/(S.timer*1000)*100)+'%';
+  if(sub)sub.textContent=Math.max(0,Math.ceil(left/1000))+'s';
+  if(left<=-400)tryTimeout(S.turn,S.deadline)}
+
 /* ---- render ---- */
 function statsHTML(){const h=load('t10-hist',{}),days=Object.keys(h),tot=days.reduce((x,k)=>x+h[k].f,0);
   return `<div class="stgrid"><div class="st"><b>${days.length}</b><span>played</span></div><div class="st"><b>${days.length?(tot/days.length).toFixed(1):0}</b><span>found on average</span></div><div class="st"><b>${streakOf(h)}</b><span>streak</span></div></div>`}
 const dateLabel=k=>new Date(k+'T12:00Z').toLocaleDateString('en-GB',{weekday:'short',day:'numeric',month:'short',timeZone:'UTC'});
+const seg=(name,opts,val)=>`<div class="seg" role="group">${opts.map(([v,l])=>`<button type="button" data-seg="${name}" data-v="${v}" aria-pressed="${String(v)===String(val)}">${l}</button>`).join('')}</div>`;
+// the list being played: its title, the lives (or whose turn it is), the search box, the ten rows and the wrong answers
+function askHTML(){const l=listById(S.list),on=S.mode==='online';
+  let h=`<p class="t10q">${esc(l.title)}</p><button class="linkbtn" id="src" style="align-self:flex-start;padding:0">Where the numbers come from</button>`;
+  if(S.over)return h;
+  if(!on)h+=`<div class="lives" aria-label="${S.lives} lives left">Lives ${Array.from({length:LIVES},(_,i)=>`<i class="${i<S.lives?'':'off'}"></i>`).join('')}<span class="cnt">${S.found.length}/10 found</span></div>`;
+  if(!on||S.turn===S.me)h+=`<div class="t10in"><input id="q" placeholder="Type a country…" autocomplete="off" autocapitalize="words" spellcheck="false" value="${esc(query)}" aria-label="Type a country"><ul class="sugg" id="sugg">${suggHTML()}</ul></div>`;
+  if(on&&S.turn===S.me)h+=`<button class="ghost" id="opass" style="align-self:flex-start">Pass</button>`;
+  return h}
+function listHTML(){const l=listById(S.list),r=ranking(l),val=Object.fromEntries(r.map(x=>[x.c,x.v])),on=S.mode==='online';
+  const pin=c=>on&&S.by[c]!=null?`<span class="pin" style="${pinStyle(S.by[c])}" title="${esc(S.players[S.by[c]].name)}"></span>`:'';
+  let h=`<ol class="t10list">${S.top.map((c,i)=>{const f=S.found.includes(c),show=f||S.over,co=byCode[c];
+    return `<li class="${f?'on':S.over?'miss':''}${fresh===c?' new':''}"${f&&on?` style="background:var(--p${S.by[c]%6}-soft)"`:''}><span class="rk">${i+1}</span><span class="nm">${show?`<img class="mini" src="${FLAGS[c]}" alt="">${esc(co.n)}${pin(c)}`:''}</span>${show?`<span class="val">${esc(l.fmt(val[c]))}</span>`:''}</li>`}).join('')}</ol>`;
+  fresh=null;
+  if(S.wrong.length)h+=`<p class="wrongs">Not in the top 10: ${S.wrong.map(c=>{const k=r.findIndex(x=>x.c===c);return esc(byCode[c].n)+(k>=0?` (#${k+1})`:'')+(on?` <span class="pin" style="${pinStyle(S.by[c])}"></span>`:'')}).join(' · ')}</p>`;
+  return h}
+const quickRules=extra=>`<section class="panel qrules"><span class="label">Quick rules</span><p class="hint">Name the ten countries of the ranking, in any order. A country outside the top 10 costs one of your ${LIVES} lives. Only independent countries count.${extra||''}</p></section>`;
 function homeHTML(){const key=todayKey(),num=dayNum(key,T10_FIRST),d=dailySaved(),h=load('t10-hist',{}),days=Object.keys(h);
-  const daily=d&&d.over
+  let daily;
+  if(d&&d.over)
     // played: green for the places you found, grey for the rest, like the shared result; tap to see the list
-    ?`<button class="hcard" id="daily"><span class="hm">Today's list #${num} · done</span><span class="dsum"><span class="dsq" style="grid-template-columns:repeat(5,1fr)" aria-hidden="true">${d.top.map(c=>`<i class="${d.found.includes(c)?'on':''}"></i>`).join('')}</span><span class="dtxt"><span class="ht">${d.found.length} of 10</span><span class="hs">${d.won?`${d.lives} li${d.lives===1?'fe':'ves'} left`:'countries found'}</span></span><span class="dstats"><span><b>${streakOf(h)}</b>streak</span><span><b>${days.length}</b>played</span><span><b>${days.reduce((m,k)=>Math.max(m,h[k].f),0)}</b>best</span></span></span><span class="hs">Tap to see the full list and share your result.</span><span class="hm">Next list in ${nextIn()}</span></button>`
-    :`<button class="hcard ac" id="daily"><span class="hm">#${num} · ${dateLabel(key)}</span><span class="ht">Today's list</span><span class="hs">${d?'You started it: tap to continue.':'The same ranking for everyone, one try. Tap to start.'}</span></button>`;
+    daily=`<button class="hcard" id="daily"><span class="hm">Today's list #${num} · done</span><span class="dsum"><span class="dsq" style="grid-template-columns:repeat(5,1fr)" aria-hidden="true">${d.top.map(c=>`<i class="${d.found.includes(c)?'on':''}"></i>`).join('')}</span><span class="dtxt"><span class="ht">${d.found.length} of 10</span><span class="hs">${d.won?`${d.lives} li${d.lives===1?'fe':'ves'} left`:'countries found'}</span></span><span class="dstats"><span><b>${streakOf(h)}</b>streak</span><span><b>${days.length}</b>played</span><span><b>${days.reduce((m,k)=>Math.max(m,h[k].f),0)}</b>best</span></span></span><span class="hs">Tap to see the full list and share your result.</span><span class="hm">Next list in ${nextIn()}</span></button>`;
+  else{
+    // not played yet: today's list is open right here, as Borderline shows today's grid
+    mode='daily';if(!S||S.mode!=='daily'||S.date!==key)S=dailyGame();
+    daily=`<div class="hcard ac play"><span class="hm">#${num} · ${dateLabel(key)}</span><span class="ht">Today's list</span><span class="hs">${d?'You started it: keep going.':'The same ranking for everyone, one try. Type a country to start.'}</span><div class="dplay">${askHTML()}${listHTML()}</div></div>`}
   return header('Top <span>10</span>','')+`<section class="home">${daily}
-    <div class="hrow one"><button class="hcard" data-go="free"><span class="ht">Solo</span><span class="hs">Practice on unlimited lists, at your pace.</span></button></div></section>
-    <section class="panel qrules"><span class="label">Quick rules</span><p class="hint">Name the ten countries of the ranking, in any order. A country outside the top 10 costs one of your ${LIVES} lives. Only independent countries count. Full rules in <b>How to play</b>.</p></section>`}
-function goHome(){view='home';toastMsg=null;drawToast();query='';render()}
+    <div class="hrow"><button class="hcard" data-go="free"><span class="ht">Solo</span><span class="hs">Practice on unlimited lists, at your pace.</span></button>
+    <button class="hcard" data-go="friends"><span class="ht">With friends</span><span class="hs">Play online, 2 to ${MAXP} players.</span></button></div></section>
+    ${quickRules(' Full rules in <b>How to play</b>.')}`}
+function goHome(){if(roomCode){if(!confirm('Leave the room and go to the home screen?'))return;leaveRoom().then(()=>{view='home';render()});return}
+  view='home';toastMsg=null;drawToast();query='';render();window.scrollTo(0,0)}
+function friendsHTML(){
+  return header('Top <span>10</span>','')+`<section class="panel">
+    <div class="backline"><button class="linkbtn" id="home">← Back</button><span class="ht">With friends</span></div>
+    <p class="hint">2 to ${MAXP} players, each on their own phone. The host creates a room and shares its link or code.</p>
+    <div class="field"><label class="label" for="fname">Your name in the room</label><input id="fname" maxlength="16" autocomplete="nickname" placeholder="Your name" value="${esc(setup.fname||'')}"></div>
+    <div class="field"><span class="label">Time per turn</span>${seg('timer',TIMERS.map(t=>[t,t?t+' s':'Off']),setup.timer)}</div>
+    <div class="field">${FB_OK()?'':'<p class="hint">Online play needs a connection: reload the page when you are online.</p>'}<button class="primary" id="create" ${FB_OK()?'':'disabled style="opacity:.5"'}>Create room</button></div>
+    <div class="field"><label class="label" for="jcode">Join a friend's room</label><div class="joinrow"><input class="code-in" id="jcode" placeholder="ABCD" maxlength="4" value="${esc(setup.join||'')}" autocomplete="off"><button class="ghost" id="join" ${FB_OK()?'':'disabled'}>Join</button></div></div>
+  </section>
+  <section class="panel qrules"><span class="label">Quick rules</span><p class="hint">Everyone plays the same ranking and takes turns naming one country. A country in the top 10 scores a point for you; one outside costs you one of your ${LIVES} lives. Most countries found wins.</p></section>`}
+function lobbyHTML(){const r=room,order=lobbyOrder(r),link=pageLink('?room='+roomCode);
+  return header('Top <span>10</span>','room '+roomCode)+`<section class="panel namecard"><span class="label">Room code</span><p class="roomcode">${roomCode}</p>
+    <p class="hint">Friends open Top 10, choose <b>With friends</b>, then type this code under Join. Or send them the link:</p>
+    <pre class="sharebox" id="linkbox">${esc(link)}</pre><button class="ghost" id="copylink">Copy link</button>
+    <span class="label">Players ${order.length}/${MAXP}</span>
+    <div class="players">${order.map((pid,i)=>{const p=r.players[pid];return `<div class="lp ${p.on===false?'off':''}"><span class="pin" style="${pinStyle(i)}"></span>${esc(p.name)}<span class="tag">${[pid===r.host?'host':'',pid===ME?'you':'',p.on===false?'offline':''].filter(Boolean).join(' · ')}</span></div>`}).join('')}</div>
+    <p class="hint">${r.cfg.timer?r.cfg.timer+' s per turn':'No turn timer'} · a random list for each game</p>
+    ${r.host===ME?`<button class="primary" id="ostart" ${order.length<2?'disabled style="opacity:.5"':''}>${order.length<2?'Waiting for players…':'Start game'}</button>`:'<p class="hint">Waiting for the host to start the game.</p>'}
+    <button class="ghost" id="leave">Leave room</button></section>`}
+function onlineHTML(){const cur=S.players[S.turn]||{};
+  let h=header('Top <span>10</span>','room '+roomCode);
+  if(!S.over)h+=`<div class="status"><span class="pin" style="${pinStyle(S.turn)}"></span><span class="who">${S.turn===S.me?'Your turn':'Waiting for '+esc(cur.name)}</span><span class="sub">${S.found.length}/10 found${S.timer?` · <span id="tleft">${Math.max(0,Math.ceil((S.deadline-now())/1000))}s</span>`:''}</span>${S.timer?'<span class="tbar" style="width:100%"></span>':''}</div>`;
+  h+=`<div class="scores">${S.players.map((p,i)=>`<span class="chip ${!S.over&&i===S.turn?'on':''} ${!p.on||!p.lives?'off':''}"><span class="pin" style="${pinStyle(i)}"></span>${esc(p.name)} <b>${p.score}</b> <span aria-label="${p.lives} lives left">${'♥'.repeat(p.lives)}</span></span>`).join('')}</div>`;
+  if(S.over){const rk=S.players.map((p,i)=>({...p,i})).sort((a,b)=>b.score-a.score||a.miss-b.miss),best=rk[0],tie=rk.length>1&&rk[1].score===best.score&&rk[1].miss===best.miss;
+    h+=`<section class="panel"><span class="label">Room ${roomCode}</span><p class="big">${tie?"It's a tie":esc(best.name)+' wins'}</p>
+      <p class="hint">${S.won?'All ten found.':`${S.found.length} of 10 found. The full list is below.`} ${rk.map(p=>`${esc(p.name)} ${p.score}`).join(' · ')}</p>
+      ${S.host?`<div class="row-btns"><button class="primary" id="orematch" style="flex:1">Rematch</button><button class="ghost" id="olobby" style="flex:1">Back to room</button></div>`:'<p class="hint">Waiting for the host to start a rematch.</p>'}</section>`}
+  else if(S.me>=0&&!S.lives)h+=`<p class="hint">You are out of lives: watch the others finish.</p>`;
+  if(!S.over&&!cur.on&&S.turn!==S.me)h+=`<button class="ghost" id="oskip">${esc(cur.name)} is offline: skip their turn</button>`;
+  h+=`<section class="panel">${askHTML()}</section>${listHTML()}`;
+  h+=`<div class="row-btns">${S.host&&!S.over?'<button class="ghost" id="oend" style="flex:1">End game</button>':''}<button class="ghost" id="leave" style="flex:1">Leave room</button></div>`;
+  return h}
 function render(){
+  if(roomCode&&room){app.innerHTML=S&&S.mode==='online'?onlineHTML():lobbyHTML();bind();return}
   if(view==='home'){app.innerHTML=homeHTML();bind();return}
+  if(view==='friends'){app.innerHTML=friendsHTML();bind();return}
   const l=listById(S&&S.list);
-  if(!S||!l){app.innerHTML=header('Top <span>10</span>','')+`<section class="panel"><p class="hint">Could not load the list. Try again later.</p></section>`;return}
-  const r=ranking(l),val=Object.fromEntries(r.map(x=>[x.c,x.v]));
+  if(!S||!l){app.innerHTML=header('Top <span>10</span>','')+`<section class="panel"><p class="hint">Could not load the list. Try again later.</p></section>`;bind();return}
   let h=header('Top <span>10</span>',S.mode==='daily'?'Daily #'+S.num:'Solo');
   h+=`<div class="backline"><button class="linkbtn" id="home">← Back</button><span class="ht">${S.mode==='daily'?"Today's list":'Solo'}</span></div>`;
   if(S.over)h+=resultHTML();
-  h+=`<section class="panel"><p class="t10q">${esc(l.title)}</p><button class="linkbtn" id="src" style="align-self:flex-start;padding:0">Where the numbers come from</button>`;
-  if(!S.over){
-    h+=`<div class="lives" aria-label="${S.lives} lives left">Lives ${Array.from({length:LIVES},(_,i)=>`<i class="${i<S.lives?'':'off'}"></i>`).join('')}<span class="cnt">${S.found.length}/10 found</span></div>
-    <div class="t10in"><input id="q" placeholder="Type a country…" autocomplete="off" autocapitalize="words" spellcheck="false" value="${esc(query)}" aria-label="Type a country"><ul class="sugg" id="sugg">${suggHTML()}</ul></div>`}
-  h+=`</section>`;
-  h+=`<ol class="t10list">${S.top.map((c,i)=>{const f=S.found.includes(c),show=f||S.over,co=byCode[c];
-    return `<li class="${f?'on':S.over?'miss':''}${fresh===c?' new':''}"><span class="rk">${i+1}</span><span class="nm">${show?`<img class="mini" src="${FLAGS[c]}" alt="">${esc(co.n)}`:''}</span>${show?`<span class="val">${esc(l.fmt(val[c]))}</span>`:''}</li>`}).join('')}</ol>`;
-  fresh=null;
-  if(S.wrong.length)h+=`<p class="wrongs">Not in the top 10: ${S.wrong.map(c=>{const k=r.findIndex(x=>x.c===c);return esc(byCode[c].n)+(k>=0?` (#${k+1})`:'')}).join(' · ')}</p>`;
-  if(!S.over)h+=`<section class="panel qrules"><span class="label">Quick rules</span><p class="hint">Name the ten countries of the ranking, in any order. A country outside the top 10 costs one of your ${LIVES} lives. Only independent countries count.</p></section>`;
+  h+=`<section class="panel">${askHTML()}</section>${listHTML()}`;
+  if(!S.over)h+=quickRules();
   app.innerHTML=h;bind();
 }
 function resultHTML(){
@@ -179,28 +386,56 @@ function rulesHTML(){return `<h3>The idea</h3><ul>
   <li>The game ends when you find all ten or run out of lives; then the full list is shown.</li>
   <li>Only independent countries count, never territories. The figures are the same ones Borderline uses; "Where the numbers come from" names the source of each list.</li></ul>
   <h3>Modes</h3><ul>
-  <li><b>Today's list</b>: the same for everyone, new every day at midnight CET. One try, saved on this device.</li>
-  <li><b>Solo</b>: unlimited practice lists. Share sends a link to the same list.</li></ul>`}
+  <li><b>Today's list</b>: the same for everyone, new every day at midnight CET, open on the home screen. One try, saved on this device.</li>
+  <li><b>Solo</b>: unlimited practice lists. Share sends a link to the same list.</li>
+  <li><b>With friends</b>: online rooms for 2 to ${MAXP} players, each on their own phone. Everyone plays the same list and takes turns naming one country: a country in the top 10 scores a point, one outside costs a life, and you can pass. The game ends when the ten are found, when everyone is out of lives or when everyone passes in a row; most countries found wins (on a tie, fewer mistakes). The host can also end it.</li></ul>`}
 function drawSugg(){const u=$('sugg');if(u){u.innerHTML=suggHTML();u.querySelectorAll('[data-g]').forEach(b=>b.onclick=()=>guess(b.dataset.g))}}
 function bind(){
   if($('daily'))$('daily').onclick=openDaily;
   app.querySelectorAll('[data-go="free"]').forEach(b=>b.onclick=()=>openFree());
+  app.querySelectorAll('[data-go="friends"]').forEach(b=>b.onclick=()=>{view='friends';render();window.scrollTo(0,0)});
   if($('home'))$('home').onclick=goHome;
   if($('rules'))$('rules').onclick=()=>dialog('How to play',rulesHTML());
   if($('src'))$('src').onclick=()=>{const l=listById(S.list);dialog(esc(l.title),`<p>${esc(l.src)}</p><p class="hint">Independent countries only. Places with no figure in the source are left out.</p>`)};
   const q=$('q');
   if(q){q.oninput=e=>{query=e.target.value;drawSugg()};
     q.onkeydown=e=>{if(e.key==='Enter'){const m=matches(query).filter(c=>!S.found.includes(c.c)&&!S.wrong.includes(c.c));if(m[0])guess(m[0].c)}};
-    drawSugg();if(!TOUCH||query)setTimeout(()=>{q.focus();q.setSelectionRange(q.value.length,q.value.length)},0)}
+    drawSugg();
+    // on the home screen the box gets the focus only once you have started typing, so phones do not open the keyboard at once
+    if(query||typing||(!TOUCH&&view!=='home'))setTimeout(()=>{q.focus();q.setSelectionRange(q.value.length,q.value.length)},0)}
   if($('copy'))$('copy').onclick=()=>share(shareMessage());
   if($('again'))$('again').onclick=()=>openFree();
+  // With friends
+  app.querySelectorAll('[data-seg="timer"]').forEach(b=>b.onclick=()=>{saveSetup();setup.timer=+b.dataset.v;saveSetup();render()});
+  if($('fname'))$('fname').onchange=saveSetup;
+  if($('jcode'))$('jcode').oninput=e=>{setup.join=e.target.value};
+  if($('create'))$('create').onclick=createRoom;
+  if($('join'))$('join').onclick=()=>joinRoom($('jcode').value);
+  if($('jcode'))$('jcode').onkeydown=e=>{if(e.key==='Enter')joinRoom(e.target.value)};
+  if($('copylink'))$('copylink').onclick=()=>{const t=pageLink('?room='+roomCode);
+    if(navigator.share&&TOUCH){navigator.share({text:'Play Top 10 with me: '+t}).catch(()=>{});return}
+    try{navigator.clipboard.writeText(t).then(()=>toast('Link copied.','good'),()=>toast('Copy the link above.'))}catch(e){toast('Copy the link above.')}};
+  if($('leave'))$('leave').onclick=()=>{if(S&&S.mode==='online'&&!S.over&&!confirm('Leave the room? The game goes on without you.'))return;leaveRoom()};
+  if($('ostart'))$('ostart').onclick=()=>onlineAct('start');
+  if($('orematch'))$('orematch').onclick=()=>onlineAct('rematch');
+  if($('olobby'))$('olobby').onclick=()=>onlineAct('lobby');
+  if($('oend'))$('oend').onclick=()=>{if(confirm('End the game for everyone?'))onlineAct('end')};
+  if($('opass'))$('opass').onclick=()=>onlineAct('pass');
+  if($('oskip'))$('oskip').onclick=()=>onlineAct('skip');
 }
 
-/* ---- start: ?l=pop-hi opens that list in Practice (from a shared link) ---- */
-(()=>{const id=TESTQ.get('l');
+/* ---- start: today's list on the home screen; ?l=pop-hi opens that list in Solo (a shared link), ?room=ABCD a friend's room ---- */
+(()=>{const id=TESTQ.get('l'),rm=(TESTQ.get('room')||'').toUpperCase();
   if(id&&listById(id)){openFree(id);try{history.replaceState(null,'',location.pathname)}catch(e){}return}
+  if(/^[A-Z]{4}$/.test(rm)){view='friends';setup.join=rm}
   render()})();
-document.addEventListener('visibilitychange',()=>{if(document.hidden)return;if(view==='home')render();else if(mode==='daily'&&S&&S.date!==todayKey())openDaily()});
+// back in a room after a reload (the online scripts load after the page)
+window.addEventListener('DOMContentLoaded',()=>{let code='';try{code=localStorage.getItem('t10-room')||''}catch(e){}
+  if(view==='friends')render(); // the Create and Join buttons were drawn before Firebase loaded
+  if(!code||!initFB())return;
+  db.ref('rooms/'+code).once('value').then(s=>{const r=s.val();
+    if(r&&r.game==='top10'&&r.players&&r.players[ME]&&!roomCode)listenRoom(code);else try{localStorage.removeItem('t10-room')}catch(e){}}).catch(()=>{})});
+document.addEventListener('visibilitychange',()=>{if(document.hidden||roomCode)return;if(view==='home')render();else if(mode==='daily'&&S&&S.mode==='daily'&&S.date!==todayKey())openDaily()});
 </script>
 </body>
 </html>
