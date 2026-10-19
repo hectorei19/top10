@@ -1,10 +1,12 @@
-// Games menu: a button at the top left lists the three games and marks the ones played today.
+// Games menu: a button at the top left lists the three games, marks the ones played today and links to the Geo Games home page.
 // Each game is its own website (hectorei19.github.io/borderline, /connections, /top10), each with a copy of this file:
 // change it in one, copy it to the other two. They share one origin, so "played" is read from each game's save on this device.
 const GAMES=[
   {id:'borderline',name:'Borderline',href:'../borderline/',hint:'Fill the grid of countries'},
   {id:'connections',name:'Connections',href:'../connections/',hint:'Find the four groups of four'},
   {id:'top10',name:'Top 10',href:'../top10/',hint:'Name the ten countries of a ranking'}];
+// the Geo Games home page, last item of the menu
+const MORE_GAMES='https://hectorei19.github.io/geo-games/';
 const GAME_HERE=document.documentElement.dataset.game||'borderline';
 function gamesDay(){const p=madridParts(Date.now());return p.year+'-'+p.month+'-'+p.day}
 // the daily game of each page: Borderline keeps bl-daily and bl-hist, the others cx-daily and t10-daily
@@ -25,7 +27,7 @@ function drawGames(open){let box=document.getElementById('gamesmenu');
   if(!open){box.innerHTML='';return}
   const top=Math.round((b?b.getBoundingClientRect().bottom:54)+4);
   box.innerHTML=`<div class="menuscrim" id="gamesscrim"></div><nav class="gmenu" aria-label="Games" style="top:${top}px"><span class="gmhead">Today's games</span>${GAMES.map(g=>{const p=playedToday(g.id),here=g.id===GAME_HERE;
-    return `<a class="gmitem${here?' here':''}" href="${g.href}"${here?' aria-current="page"':''}><span class="gmtxt"><b>${g.name}</b><small>${g.hint}</small></span><span class="gmst${p?' done':''}">${p?'✓ Played':here?'Playing':'Not played'}</span></a>`}).join('')}</nav>`;
+    return `<a class="gmitem${here?' here':''}" href="${g.href}"${here?' aria-current="page"':''}><span class="gmtxt"><b>${g.name}</b><small>${g.hint}</small></span><span class="gmst${p?' done':''}">${p?'✓ Played':here?'Playing':'Not played'}</span></a>`}).join('')}<a class="gmitem gmmore" href="${MORE_GAMES}"><span class="gmtxt"><b>More games</b><small>All the Geo Games</small></span><span class="gmst">→</span></a></nav>`;
   document.getElementById('gamesscrim').onclick=()=>drawGames(false)}
 document.addEventListener('click',e=>{if(e.target.closest&&e.target.closest('#gamesbtn')){e.preventDefault();drawGames(!document.querySelector('#gamesmenu .gmenu'))}});
 document.addEventListener('keydown',e=>{if(e.key==='Escape'&&document.querySelector('#gamesmenu .gmenu'))drawGames(false)});
