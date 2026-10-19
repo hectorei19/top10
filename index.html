@@ -10,7 +10,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Big+Shoulders+Display:wght@700;900&family=Barlow+Semi+Condensed:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap">
-<link rel="stylesheet" href="style.css?v=202610192100">
+<link rel="stylesheet" href="style.css?v=202610192300">
 <style>
 /* Top 10: a ranked list with ten empty rows that fill in as you name the countries */
 .t10q{font-family:var(--display);font-weight:900;text-transform:uppercase;font-size:1.9rem;line-height:1;letter-spacing:.02em;margin:0;text-wrap:balance}
@@ -40,9 +40,9 @@
 <footer class="foot"><a class="linkbtn" href="../borderline/">Data and sources: Credits in Borderline</a></footer>
 <div id="layer"></div>
 
-<script src="data.js?v=202610192100"></script>
-<script src="games.js?v=202610192200"></script>
-<script src="minigames.js?v=202610192100"></script>
+<script src="data.js?v=202610192300"></script>
+<script src="games.js?v=202610192300"></script>
+<script src="minigames.js?v=202610192300"></script>
 <script>
 /* ---- the rankings ----
    Only numbers Borderline already uses (DATA and the country data), with the sources named in its Credits.
@@ -140,7 +140,7 @@ function homeHTML(){const key=todayKey(),num=dayNum(key,T10_FIRST),d=dailySaved(
     // played: green for the places you found, grey for the rest, like the shared result; tap to see the list
     ?`<button class="hcard" id="daily"><span class="hm">Today's list #${num} · done</span><span class="dsum"><span class="dsq" style="grid-template-columns:repeat(5,1fr)" aria-hidden="true">${d.top.map(c=>`<i class="${d.found.includes(c)?'on':''}"></i>`).join('')}</span><span class="dtxt"><span class="ht">${d.found.length} of 10</span><span class="hs">${d.won?`${d.lives} li${d.lives===1?'fe':'ves'} left`:'countries found'}</span></span><span class="dstats"><span><b>${streakOf(h)}</b>streak</span><span><b>${days.length}</b>played</span><span><b>${days.reduce((m,k)=>Math.max(m,h[k].f),0)}</b>best</span></span></span><span class="hs">Tap to see the full list and share your result.</span><span class="hm">Next list in ${nextIn()}</span></button>`
     :`<button class="hcard ac" id="daily"><span class="hm">#${num} · ${dateLabel(key)}</span><span class="ht">Today's list</span><span class="hs">${d?'You started it: tap to continue.':'The same ranking for everyone, one try. Tap to start.'}</span></button>`;
-  return header('Top <span>10</span>','')+`<section class="home">${daily}
+  return header('Top <span>10</span>','',true)+`<section class="home">${daily}
     <div class="hrow one"><button class="hcard" data-go="free"><span class="ht">Solo</span><span class="hs">Practice on unlimited lists, at your pace.</span></button></div></section>
     <section class="panel qrules"><span class="label">Quick rules</span><p class="hint">Name the ten countries of the ranking, in any order. A country outside the top 10 costs one of your ${LIVES} lives. Only independent countries count. Full rules in <b>How to play</b>.</p></section>`}
 function goHome(){view='home';toastMsg=null;drawToast();query='';render()}

@@ -26,7 +26,34 @@ function drawToast(){let el=$('toastbox');if(!el){el=document.createElement('div
 function dialog(title,html,label){layer.innerHTML=`<div class="infoscrim" id="dscrim"></div><div class="infobox helpbox" role="dialog" aria-modal="true" aria-labelledby="dlgt"><h2 id="dlgt">${title}</h2>${html}<button class="primary" id="dok">${label||'Got it'}</button></div>`;
   const close=()=>{layer.innerHTML=''};$('dok').onclick=$('dscrim').onclick=close;$('dok').focus()}
 document.addEventListener('keydown',e=>{if(e.key==='Escape'&&$('dok'))layer.innerHTML=''});
-function header(brand,coord){return `<header class="top mini-top"><span class="tl">${gamesBtn()}<h1 class="brand">${brand}</h1></span><span class="coord">${esc(coord)}</span><button class="helpbtn" id="rules">How to play</button></header>`}
+// header and Menu as in Borderline: on the home screen the Menu sits on the "Playing as" line, elsewhere in the header.
+// Tapping the logo goes back to the home screen (each page defines goHome).
+const MICONS={menu:'M4 6h16M4 12h16M4 18h16',games:'M4 4h6v6H4zM14 4h6v6h-6zM4 14h6v6H4zM14 14h6v6h-6z',help:'M12 3a9 9 0 1 0 0 18a9 9 0 0 0 0-18M12 17v.01M12 13.5a1.5 1.5 0 0 1 1-1.5a2.6 2.6 0 1 0-3-4',
+  stats:'M4 12h4a1 1 0 0 1 1 1v6a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1v-6a1 1 0 0 1 1-1M10 8h4a1 1 0 0 1 1 1v10a1 1 0 0 1-1 1h-4a1 1 0 0 1-1-1V9a1 1 0 0 1 1-1M16 4h4a1 1 0 0 1 1 1v14a1 1 0 0 1-1 1h-4a1 1 0 0 1-1-1V5a1 1 0 0 1 1-1',
+  credits:'M3 19a9 9 0 0 1 9 0a9 9 0 0 1 9 0M3 6a9 9 0 0 1 9 0a9 9 0 0 1 9 0M3 6v13M12 6v13M21 6v13'};
+const mico=k=>`<svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="${MICONS[k]}"/></svg>`;
+const menuBtn=()=>`<button class="helpbtn" id="menu" aria-haspopup="true" aria-expanded="false">${mico('menu')}Menu</button>`;
+// the name you play with in Borderline (same site, so the same device storage); Guest otherwise
+function playerName(){try{return localStorage.getItem('bl-user')||'Guest'}catch(e){return 'Guest'}}
+function header(brand,coord,home){
+  const top=`<header class="top"><h1 class="brand" id="brand" role="link" tabindex="0" title="Home">${brand}</h1><span class="coord">${esc(coord)}</span>${home?'':menuBtn()}</header>`;
+  return home?top+`<div class="userline"><span class="pin" style="background:var(--sea)"></span>Playing as ${esc(playerName())}<span class="uright">${menuBtn()}</span></div>`:top}
+function drawMenu(open){let box=$('menulayer');
+  if(!box){box=document.createElement('div');box.id='menulayer';document.body.appendChild(box)}
+  const b=$('menu');if(b)b.setAttribute('aria-expanded',open?'true':'false');
+  if(!open){box.innerHTML='';return}
+  const it=(k,label)=>`<button class="mitem" data-menu="${k}">${mico(k)}${label}</button>`;
+  box.innerHTML=`<div class="menuscrim" id="menuscrim"></div><nav class="menubox" aria-label="Menu" style="top:${Math.round((b?b.getBoundingClientRect().bottom:54)+4)}px">${it('help','How to play')}${it('stats','My stats')}${it('credits','Credits &amp; data sources')}${it('games','More games')}</nav>`;
+  $('menuscrim').onclick=()=>drawMenu(false);
+  box.querySelectorAll('[data-menu]').forEach(m=>m.onclick=()=>{const k=m.dataset.menu;drawMenu(false);
+    if(k==='help')dialog('How to play',rulesHTML());
+    else if(k==='stats')dialog('My stats',`<p class="hint">Your daily games, kept on this device.</p>${statsHTML()}`);
+    else if(k==='credits')dialog('Credits &amp; data sources',`<p>The countries, flags, categories and figures are the same ones Borderline uses, with the same sources.</p><p>The full list of sources is in Borderline: <a href="../borderline/">open Borderline</a> and tap <b>Menu → Credits &amp; data sources</b>.</p>`);
+    else if(k==='games')location.href=typeof MORE_GAMES==='string'?MORE_GAMES:'https://hectorei19.github.io/geo-games/'})}
+document.addEventListener('click',e=>{const t=e.target.closest&&e.target.closest('#menu,#brand');if(!t)return;
+  if(t.id==='menu')drawMenu(!document.querySelector('#menulayer .menubox'));else if(typeof goHome==='function')goHome()});
+document.addEventListener('keydown',e=>{if(e.key==='Escape'&&document.querySelector('#menulayer .menubox'))drawMenu(false);
+  if(e.key==='Enter'&&document.activeElement&&document.activeElement.id==='brand'&&typeof goHome==='function')goHome()});
 
 // phones: the system share menu; elsewhere copy the result and the link (if the clipboard is blocked, select the text)
 const TOUCH=matchMedia('(pointer:coarse)').matches;
