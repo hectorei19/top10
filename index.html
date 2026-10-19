@@ -1,0 +1,191 @@
+<!doctype html>
+<html lang="en" data-game="top10">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<style>body{margin:0}img{max-width:100%}[hidden]{display:none!important}:root{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}</style>
+<title>Top 10 · Borderline</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Big+Shoulders+Display:wght@700;900&family=Barlow+Semi+Condensed:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap">
+<link rel="stylesheet" href="style.css?v=202610192100">
+<style>
+/* Top 10: a ranked list with ten empty rows that fill in as you name the countries */
+.t10q{font-family:var(--display);font-weight:900;text-transform:uppercase;font-size:1.9rem;line-height:1;letter-spacing:.02em;margin:0;text-wrap:balance}
+.t10list{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;background:var(--sheet);border:1.5px solid var(--ink);border-radius:6px;box-shadow:var(--shadow);overflow:hidden}
+.t10list li{display:flex;align-items:center;gap:10px;min-height:44px;padding:6px 12px;border-top:1px dashed var(--rule)}
+.t10list li:first-child{border-top:0}
+.t10list .rk{font-family:var(--display);font-weight:900;font-size:1.35rem;width:30px;color:var(--sea)}
+.t10list .nm{flex:1;font-weight:700;font-size:1.05rem;min-width:0;display:flex;align-items:center;gap:8px}
+.t10list .val{font-family:var(--mono);font-size:.78rem;color:var(--ink-2);white-space:nowrap}
+.t10list li.on{background:var(--p4-soft)}
+.t10list li.on.new{animation:pop .35s cubic-bezier(.3,1.6,.6,1)}
+.t10list li.miss .nm{color:var(--ink-2);font-weight:500}
+.t10list .mini{width:24px;height:24px}
+.t10in{display:flex;flex-direction:column;gap:6px}
+.t10in input{width:100%;border:1.5px solid var(--ink);border-radius:5px;padding:12px;font-size:1.1rem;background:var(--paper)}
+.t10in .sugg{max-height:none}
+.lives{display:flex;align-items:center;gap:8px;font-size:.95rem;color:var(--ink-2)}
+.lives i{width:12px;height:12px;border-radius:50%;background:var(--bad)}
+.lives i.off{background:transparent;box-shadow:inset 0 0 0 1.5px var(--rule)}
+.lives .cnt{margin-left:auto;font-family:var(--mono);font-size:.8rem}
+.wrongs{margin:0;font-size:.92rem;color:var(--ink-2)}
+.modes{max-width:320px;width:100%;align-self:center}
+</style>
+</head>
+<body>
+<div class="wrap" id="app"></div>
+<footer class="foot"><a class="linkbtn" href="../borderline/">Data and sources: Credits in Borderline</a></footer>
+<div id="layer"></div>
+
+<script src="data.js?v=202610192100"></script>
+<script src="games.js?v=202610192100"></script>
+<script src="minigames.js?v=202610192100"></script>
+<script>
+/* ---- the rankings ----
+   Only numbers Borderline already uses (DATA and the country data), with the sources named in its Credits.
+   Independent countries only. A list is used only when the 10th and 11th places are not tied. */
+const T10_FIRST='2026-10-19',LIVES=3;
+const SOVC=C.filter(c=>!c.t);
+const n0=v=>Math.round(v).toLocaleString('en-GB');
+const ppl=v=>v>=1e9?(v/1e9).toFixed(2)+' billion':v>=1e6?(v/1e6).toFixed(1)+' million':n0(v);
+const d1=v=>(+v).toFixed(1);
+const num=v=>typeof v==='number'&&isFinite(v)?v:undefined;
+const D=k=>c=>num(DATA[k][c.c]);
+const AREANOTE='Total area (land and inland water), from the country data used in Borderline (mledoze/countries).';
+const L=(id,title,get,dir,fmt,src)=>({id,title,get,dir,fmt,src});
+const ALL_LISTS=[
+  L('pop-hi','The 10 most populous countries',D('pop'),-1,ppl,POPNOTE),
+  L('pop-lo','The 10 least populous countries',D('pop'),1,v=>n0(v)+' people',POPNOTE),
+  L('area-hi','The 10 largest countries by area',c=>c.a>0?c.a:undefined,-1,v=>n0(v)+' km²',AREANOTE),
+  // no "smallest by area": the country data has no area for Vatican City, the smallest of all
+  L('gdp-hi','The 10 countries with the highest GDP per person',D('gdp'),-1,v=>'$'+n0(v),NOTE('World Bank figures, 2025 column','List of countries by GDP (nominal) per capita')),
+  L('gdp-lo','The 10 countries with the lowest GDP per person',D('gdp'),1,v=>'$'+n0(v),NOTE('World Bank figures, 2025 column','List of countries by GDP (nominal) per capita')),
+  L('hdi-hi','The 10 countries with the highest Human Development Index',D('hdi'),-1,v=>(+v).toFixed(3),NOTE('UNDP figures for 2023','List of countries by Human Development Index')),
+  L('hdi-lo','The 10 countries with the lowest Human Development Index',D('hdi'),1,v=>(+v).toFixed(3),NOTE('UNDP figures for 2023','List of countries by Human Development Index')),
+  L('life-hi','The 10 countries with the longest life expectancy',D('life'),-1,v=>d1(v)+' years',NOTE('UN figures for 2023','List of countries by life expectancy')),
+  L('life-lo','The 10 countries with the shortest life expectancy',D('life'),1,v=>d1(v)+' years',NOTE('UN figures for 2023','List of countries by life expectancy')),
+  L('age-hi','The 10 countries with the oldest population (median age)',D('age'),-1,v=>d1(v)+' years',NOTE('CIA World Factbook, 2024 estimates','List of countries by median age')),
+  L('age-lo','The 10 countries with the youngest population (median age)',D('age'),1,v=>d1(v)+' years',NOTE('CIA World Factbook, 2024 estimates','List of countries by median age')),
+  L('cpi-hi','The 10 least corrupt countries (Corruption Perceptions Index)',D('cpi'),-1,v=>n0(v)+' / 100',NOTE('Transparency International, 2025 index','Corruption Perceptions Index')),
+  L('cpi-lo','The 10 most corrupt countries (Corruption Perceptions Index)',D('cpi'),1,v=>n0(v)+' / 100',NOTE('Transparency International, 2025 index','Corruption Perceptions Index')),
+  L('co2-hi','The 10 countries with the most CO₂ emissions per person',D('co2'),-1,v=>d1(v)+' t',NOTE('figures for 2023','List of countries by carbon dioxide emissions per capita')),
+  L('urban-lo','The 10 countries with the smallest share of urban population',D('urban'),1,v=>d1(v)+'%',NOTE('UN figures for 2023','Urbanization by sovereign state')),
+  L('coast-hi','The 10 countries with the longest coastline',D('coast'),-1,v=>n0(v)+' km',NOTE('CIA World Factbook figures','List of countries by length of coastline')),
+  L('elev-hi','The 10 countries with the highest top point',D('elev'),-1,v=>n0(v)+' m',NOTE('highest points','List of elevation extremes by country')),
+  L('elev-lo','The 10 flattest countries (lowest top point)',D('elev'),1,v=>n0(v)+' m',NOTE('highest points','List of elevation extremes by country')),
+  L('landb-hi','The 10 countries with the longest land borders',D('landb'),-1,v=>n0(v)+' km',NOTE('total land border length','List of countries and territories by land borders')),
+  L('forest-hi','The 10 most forested countries (share of land)',D('forest'),-1,v=>d1(v)+'%',NOTE('forest share of land area','List of countries by forest area')),
+  L('olymp-hi','The 10 countries with the most Olympic medals',D('olymp'),-1,v=>n0(v)+' medals','All Summer and Winter Olympics together, up to the 2026 Winter Games. Medals won as part of a former team (Soviet Union, East Germany...) are not added. Source: Wikipedia, "All-time Olympic Games medal table".'),
+  L('cap-hi','The 10 countries with the most populous capital city',c=>DATA.cap_skip.includes(c.c)?undefined:num(DATA.cappop[c.c]),-1,ppl,'Population of the capital within its city limits. '+CAPNOTE),
+];
+// full ranking of a list: every independent country with a figure, best first
+function ranking(l){return SOVC.map(c=>({c:c.c,v:l.get(c)})).filter(x=>x.v!==undefined).sort((a,b)=>l.dir*(a.v-b.v)||(a.c<b.c?-1:1))}
+const LISTS=ALL_LISTS.filter(l=>{const r=ranking(l);return r.length>=20&&r[9].v!==r[10].v});
+const listById=id=>ALL_LISTS.find(l=>l.id===id);
+// the daily list: lists come in a shuffled order that is the same for everyone, so none repeats until all were used
+function dailyList(key){const n=dayNum(key,T10_FIRST)-1,len=LISTS.length,cycle=Math.floor(n/len);
+  return shuffle(LISTS,rngFrom(seedOf('top10-cycle-'+cycle)))[((n%len)+len)%len]}
+function newGame(mode,l){const r=ranking(l);
+  const S={mode,list:l.id,top:r.slice(0,10).map(x=>x.c),found:[],wrong:[],lives:LIVES,over:false,won:false};
+  if(mode==='daily'){S.date=todayKey();S.num=dayNum(S.date,T10_FIRST)}
+  return S}
+
+/* ---- state ---- */
+let S=null,mode='daily',query='',fresh=null;
+const dailySaved=()=>{const d=load('t10-daily',null);return d&&d.date===todayKey()?d.S:null};
+function save(){if(!S)return;
+  if(S.mode==='daily'){store('t10-daily',{date:S.date,over:S.over,S});
+    if(S.over){const h=load('t10-hist',{});if(!h[S.date]){h[S.date]={f:S.found.length,l:S.lives};store('t10-hist',h)}}}
+  else store('t10-free',S)}
+function openDaily(){mode='daily';S=dailySaved()||newGame('daily',dailyList(todayKey()));query='';render()}
+function openFree(id){mode='free';const f=load('t10-free',null);
+  if(!id&&f&&!f.over&&listById(f.list))S=f;
+  else{const l=id&&listById(id)||(()=>{const o=LISTS.filter(x=>!S||x.id!==S.list);return o[Math.floor(Math.random()*o.length)]})();S=newGame('free',l)}
+  query='';save();render()}
+
+/* ---- the search box: names only, found by their first letters, like Borderline ---- */
+function matches(q){const k=N(q);if(!k)return[];return SOVC.filter(c=>c.k.startsWith(k)||c.ak.some(a=>a.startsWith(k))).slice(0,8)}
+function suggHTML(){if(!query)return '';const res=matches(query);
+  if(!res.length)return `<li class="hint" style="padding:8px 2px">No country matches “${esc(query)}”.</li>`;
+  return res.map(c=>{const f=S.found.includes(c.c),w=S.wrong.includes(c.c);
+    return `<li><button data-g="${c.c}" ${f||w?'disabled':''}>${esc(c.n)}${f?'<span class="tag">found</span>':w?'<span class="tag">not in it</span>':''}</button></li>`}).join('')}
+function guess(code){if(!S||S.over)return;const c=byCode[code];
+  if(S.found.includes(code)||S.wrong.includes(code)){toast('You already tried '+c.n+'.');return}
+  query='';
+  const i=S.top.indexOf(code);
+  if(i>=0){S.found.push(code);fresh=code;if(S.found.length===10){S.over=true;S.won=true}
+    save();render();toast(S.won?'All ten!':`#${i+1} · ${c.n}`,'good');return}
+  S.wrong.push(code);S.lives--;
+  if(S.lives<=0)S.over=true;
+  save();render();
+  const r=ranking(listById(S.list)).findIndex(x=>x.c===code);
+  toast(`${c.n} is not in the top 10${r>=0?` (it is #${r+1})`:' (no figure for it)'}.`,'bad')}
+
+/* ---- share ---- */
+function shareText(){const l=listById(S.list);
+  const sq=S.top.map(c=>S.found.includes(c)?'🟩':'⬜').join(''),hearts='❤️'.repeat(S.lives)+'🖤'.repeat(LIVES-S.lives);
+  return `${S.mode==='daily'?'Borderline Top 10 #'+S.num:'Borderline Top 10 (practice)'} — ${S.found.length}/10\n${l.title}\n${sq} ${hearts}`}
+const shareLink=()=>S.mode==='daily'?pageLink():pageLink('?l='+S.list);
+const shareMessage=()=>shareText()+'\n\n'+(S.mode==='daily'?"Play today's Top 10: ":'Play this list: ')+shareLink();
+
+/* ---- render ---- */
+function statsHTML(){const h=load('t10-hist',{}),days=Object.keys(h),tot=days.reduce((x,k)=>x+h[k].f,0);
+  return `<div class="stgrid"><div class="st"><b>${days.length}</b><span>played</span></div><div class="st"><b>${days.length?(tot/days.length).toFixed(1):0}</b><span>found on average</span></div><div class="st"><b>${streakOf(h)}</b><span>streak</span></div></div>`}
+function render(){
+  const l=listById(S&&S.list);
+  if(!S||!l){app.innerHTML=header('Top <span>10</span>','')+`<section class="panel"><p class="hint">Could not load the list. Try again later.</p></section>`;return}
+  const r=ranking(l),val=Object.fromEntries(r.map(x=>[x.c,x.v]));
+  let h=header('Top <span>10</span>',S.mode==='daily'?'Daily #'+S.num:'Practice');
+  h+=`<div class="seg modes" role="group" aria-label="Mode"><button data-mode="daily" aria-pressed="${mode==='daily'}">Today's list</button><button data-mode="free" aria-pressed="${mode==='free'}">Practice</button></div>`;
+  if(S.over)h+=resultHTML();
+  h+=`<section class="panel"><p class="t10q">${esc(l.title)}</p><button class="linkbtn" id="src" style="align-self:flex-start;padding:0">Where the numbers come from</button>`;
+  if(!S.over){
+    h+=`<div class="lives" aria-label="${S.lives} lives left">Lives ${Array.from({length:LIVES},(_,i)=>`<i class="${i<S.lives?'':'off'}"></i>`).join('')}<span class="cnt">${S.found.length}/10 found</span></div>
+    <div class="t10in"><input id="q" placeholder="Type a country…" autocomplete="off" autocapitalize="words" spellcheck="false" value="${esc(query)}" aria-label="Type a country"><ul class="sugg" id="sugg">${suggHTML()}</ul></div>`}
+  h+=`</section>`;
+  h+=`<ol class="t10list">${S.top.map((c,i)=>{const f=S.found.includes(c),show=f||S.over,co=byCode[c];
+    return `<li class="${f?'on':S.over?'miss':''}${fresh===c?' new':''}"><span class="rk">${i+1}</span><span class="nm">${show?`<img class="mini" src="${FLAGS[c]}" alt="">${esc(co.n)}`:''}</span>${show?`<span class="val">${esc(l.fmt(val[c]))}</span>`:''}</li>`}).join('')}</ol>`;
+  fresh=null;
+  if(S.wrong.length)h+=`<p class="wrongs">Not in the top 10: ${S.wrong.map(c=>{const k=r.findIndex(x=>x.c===c);return esc(byCode[c].n)+(k>=0?` (#${k+1})`:'')}).join(' · ')}</p>`;
+  if(!S.over)h+=`<section class="panel qrules"><span class="label">Quick rules</span><p class="hint">Name the ten countries of the ranking, in any order. A country outside the top 10 costs one of your ${LIVES} lives. Only independent countries count.</p></section>`;
+  app.innerHTML=h;bind();
+}
+function resultHTML(){
+  const head=S.won?(S.lives===LIVES?'Perfect ten!':'All ten found'):`${S.found.length} of 10`;
+  return `<section class="panel"><span class="label">${S.mode==='daily'?'Top 10 #'+S.num:'Practice list'}</span><p class="big">${head}</p>
+    <p class="hint">${S.won?`You named the whole list with ${S.lives} li${S.lives===1?'fe':'ves'} left.`:'No lives left. The full list is below.'} ${S.mode==='daily'?`Next list in ${nextIn()}.`:''}</p>
+    <pre class="sharebox" id="share">${esc(shareText())}</pre>
+    <div class="row-btns"><button class="ghost" id="copy" style="flex:1">Share</button><button class="ghost" id="again" style="flex:1">${S.mode==='daily'?'Practice list':'New list'}</button></div>
+    ${nextGameHTML('top10')}
+    ${S.mode==='daily'?`<span class="label">Your daily lists</span>${statsHTML()}`:''}</section>`}
+function rulesHTML(){return `<h3>The idea</h3><ul>
+  <li>Each round is a ranking of countries made from real figures, for example "The 10 most populous countries" or "The 10 countries with the longest coastline".</li>
+  <li>Name the ten countries in the ranking, in any order. Each one you find appears in its place, with its figure.</li>
+  <li>A country that is not in the top 10 costs one of your <b>${LIVES} lives</b>, and you see where it ranks.</li>
+  <li>The game ends when you find all ten or run out of lives; then the full list is shown.</li>
+  <li>Only independent countries count, never territories. The figures are the same ones Borderline uses; "Where the numbers come from" names the source of each list.</li></ul>
+  <h3>Modes</h3><ul>
+  <li><b>Today's list</b>: the same for everyone, new every day at midnight CET. One try, saved on this device.</li>
+  <li><b>Practice</b>: unlimited lists. Share sends a link to the same list.</li></ul>`}
+function drawSugg(){const u=$('sugg');if(u){u.innerHTML=suggHTML();u.querySelectorAll('[data-g]').forEach(b=>b.onclick=()=>guess(b.dataset.g))}}
+function bind(){
+  app.querySelectorAll('[data-mode]').forEach(b=>b.onclick=()=>{if(b.dataset.mode===mode)return;b.dataset.mode==='daily'?openDaily():openFree()});
+  if($('rules'))$('rules').onclick=()=>dialog('How to play',rulesHTML());
+  if($('src'))$('src').onclick=()=>{const l=listById(S.list);dialog(esc(l.title),`<p>${esc(l.src)}</p><p class="hint">Independent countries only. Places with no figure in the source are left out.</p>`)};
+  const q=$('q');
+  if(q){q.oninput=e=>{query=e.target.value;drawSugg()};
+    q.onkeydown=e=>{if(e.key==='Enter'){const m=matches(query).filter(c=>!S.found.includes(c.c)&&!S.wrong.includes(c.c));if(m[0])guess(m[0].c)}};
+    drawSugg();if(!TOUCH||query)setTimeout(()=>{q.focus();q.setSelectionRange(q.value.length,q.value.length)},0)}
+  if($('copy'))$('copy').onclick=()=>share(shareMessage());
+  if($('again'))$('again').onclick=()=>openFree();
+}
+
+/* ---- start: ?l=pop-hi opens that list in Practice (from a shared link) ---- */
+(()=>{const id=TESTQ.get('l');
+  if(id&&listById(id)){openFree(id);try{history.replaceState(null,'',location.pathname)}catch(e){}return}
+  openDaily()})();
+document.addEventListener('visibilitychange',()=>{if(!document.hidden&&mode==='daily'&&S&&S.date!==todayKey())openDaily()});
+</script>
+</body>
+</html>
