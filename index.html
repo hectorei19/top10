@@ -3,7 +3,9 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<style>body{margin:0}img{max-width:100%}[hidden]{display:none!important}:root{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}</style>
+<style>body{margin:0}img{max-width:100%}[hidden]{display:none!important}:root{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}/* home screen, as in Borderline: today's list, then Solo, then quick rules */
+.hrow.one{grid-template-columns:1fr}
+</style>
 <title>Top 10 · Borderline</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -92,14 +94,14 @@ function newGame(mode,l){const r=ranking(l);
   return S}
 
 /* ---- state ---- */
-let S=null,mode='daily',query='',fresh=null;
+let S=null,mode='daily',view='home',query='',fresh=null;
 const dailySaved=()=>{const d=load('t10-daily',null);return d&&d.date===todayKey()?d.S:null};
 function save(){if(!S)return;
   if(S.mode==='daily'){store('t10-daily',{date:S.date,over:S.over,S});
     if(S.over){const h=load('t10-hist',{});if(!h[S.date]){h[S.date]={f:S.found.length,l:S.lives};store('t10-hist',h)}}}
   else store('t10-free',S)}
-function openDaily(){mode='daily';S=dailySaved()||newGame('daily',dailyList(todayKey()));query='';render()}
-function openFree(id){mode='free';const f=load('t10-free',null);
+function openDaily(){view='game';mode='daily';S=dailySaved()||newGame('daily',dailyList(todayKey()));query='';render()}
+function openFree(id){view='game';mode='free';const f=load('t10-free',null);
   if(!id&&f&&!f.over&&listById(f.list))S=f;
   else{const l=id&&listById(id)||(()=>{const o=LISTS.filter(x=>!S||x.id!==S.list);return o[Math.floor(Math.random()*o.length)]})();S=newGame('free',l)}
   query='';save();render()}
@@ -132,12 +134,23 @@ const shareMessage=()=>shareText()+'\n\n'+(S.mode==='daily'?"Play today's Top 10
 /* ---- render ---- */
 function statsHTML(){const h=load('t10-hist',{}),days=Object.keys(h),tot=days.reduce((x,k)=>x+h[k].f,0);
   return `<div class="stgrid"><div class="st"><b>${days.length}</b><span>played</span></div><div class="st"><b>${days.length?(tot/days.length).toFixed(1):0}</b><span>found on average</span></div><div class="st"><b>${streakOf(h)}</b><span>streak</span></div></div>`}
+const dateLabel=k=>new Date(k+'T12:00Z').toLocaleDateString('en-GB',{weekday:'short',day:'numeric',month:'short',timeZone:'UTC'});
+function homeHTML(){const key=todayKey(),num=dayNum(key,T10_FIRST),d=dailySaved(),h=load('t10-hist',{}),days=Object.keys(h);
+  const daily=d&&d.over
+    // played: green for the places you found, grey for the rest, like the shared result; tap to see the list
+    ?`<button class="hcard" id="daily"><span class="hm">Today's list #${num} · done</span><span class="dsum"><span class="dsq" style="grid-template-columns:repeat(5,1fr)" aria-hidden="true">${d.top.map(c=>`<i class="${d.found.includes(c)?'on':''}"></i>`).join('')}</span><span class="dtxt"><span class="ht">${d.found.length} of 10</span><span class="hs">${d.won?`${d.lives} li${d.lives===1?'fe':'ves'} left`:'countries found'}</span></span><span class="dstats"><span><b>${streakOf(h)}</b>streak</span><span><b>${days.length}</b>played</span><span><b>${days.reduce((m,k)=>Math.max(m,h[k].f),0)}</b>best</span></span></span><span class="hs">Tap to see the full list and share your result.</span><span class="hm">Next list in ${nextIn()}</span></button>`
+    :`<button class="hcard ac" id="daily"><span class="hm">#${num} · ${dateLabel(key)}</span><span class="ht">Today's list</span><span class="hs">${d?'You started it: tap to continue.':'The same ranking for everyone, one try. Tap to start.'}</span></button>`;
+  return header('Top <span>10</span>','')+`<section class="home">${daily}
+    <div class="hrow one"><button class="hcard" data-go="free"><span class="ht">Solo</span><span class="hs">Practice on unlimited lists, at your pace.</span></button></div></section>
+    <section class="panel qrules"><span class="label">Quick rules</span><p class="hint">Name the ten countries of the ranking, in any order. A country outside the top 10 costs one of your ${LIVES} lives. Only independent countries count. Full rules in <b>How to play</b>.</p></section>`}
+function goHome(){view='home';toastMsg=null;drawToast();query='';render()}
 function render(){
+  if(view==='home'){app.innerHTML=homeHTML();bind();return}
   const l=listById(S&&S.list);
   if(!S||!l){app.innerHTML=header('Top <span>10</span>','')+`<section class="panel"><p class="hint">Could not load the list. Try again later.</p></section>`;return}
   const r=ranking(l),val=Object.fromEntries(r.map(x=>[x.c,x.v]));
-  let h=header('Top <span>10</span>',S.mode==='daily'?'Daily #'+S.num:'Practice');
-  h+=`<div class="seg modes" role="group" aria-label="Mode"><button data-mode="daily" aria-pressed="${mode==='daily'}">Today's list</button><button data-mode="free" aria-pressed="${mode==='free'}">Practice</button></div>`;
+  let h=header('Top <span>10</span>',S.mode==='daily'?'Daily #'+S.num:'Solo');
+  h+=`<div class="backline"><button class="linkbtn" id="home">← Back</button><span class="ht">${S.mode==='daily'?"Today's list":'Solo'}</span></div>`;
   if(S.over)h+=resultHTML();
   h+=`<section class="panel"><p class="t10q">${esc(l.title)}</p><button class="linkbtn" id="src" style="align-self:flex-start;padding:0">Where the numbers come from</button>`;
   if(!S.over){
@@ -167,10 +180,12 @@ function rulesHTML(){return `<h3>The idea</h3><ul>
   <li>Only independent countries count, never territories. The figures are the same ones Borderline uses; "Where the numbers come from" names the source of each list.</li></ul>
   <h3>Modes</h3><ul>
   <li><b>Today's list</b>: the same for everyone, new every day at midnight CET. One try, saved on this device.</li>
-  <li><b>Practice</b>: unlimited lists. Share sends a link to the same list.</li></ul>`}
+  <li><b>Solo</b>: unlimited practice lists. Share sends a link to the same list.</li></ul>`}
 function drawSugg(){const u=$('sugg');if(u){u.innerHTML=suggHTML();u.querySelectorAll('[data-g]').forEach(b=>b.onclick=()=>guess(b.dataset.g))}}
 function bind(){
-  app.querySelectorAll('[data-mode]').forEach(b=>b.onclick=()=>{if(b.dataset.mode===mode)return;b.dataset.mode==='daily'?openDaily():openFree()});
+  if($('daily'))$('daily').onclick=openDaily;
+  app.querySelectorAll('[data-go="free"]').forEach(b=>b.onclick=()=>openFree());
+  if($('home'))$('home').onclick=goHome;
   if($('rules'))$('rules').onclick=()=>dialog('How to play',rulesHTML());
   if($('src'))$('src').onclick=()=>{const l=listById(S.list);dialog(esc(l.title),`<p>${esc(l.src)}</p><p class="hint">Independent countries only. Places with no figure in the source are left out.</p>`)};
   const q=$('q');
@@ -184,8 +199,8 @@ function bind(){
 /* ---- start: ?l=pop-hi opens that list in Practice (from a shared link) ---- */
 (()=>{const id=TESTQ.get('l');
   if(id&&listById(id)){openFree(id);try{history.replaceState(null,'',location.pathname)}catch(e){}return}
-  openDaily()})();
-document.addEventListener('visibilitychange',()=>{if(!document.hidden&&mode==='daily'&&S&&S.date!==todayKey())openDaily()});
+  render()})();
+document.addEventListener('visibilitychange',()=>{if(document.hidden)return;if(view==='home')render();else if(mode==='daily'&&S&&S.date!==todayKey())openDaily()});
 </script>
 </body>
 </html>
