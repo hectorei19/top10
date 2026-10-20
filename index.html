@@ -4,6 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <style>body{margin:0}img{max-width:100%}[hidden]{display:none!important}:root{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}/* home screen, as in Borderline: today's list open and playable, then Solo and With friends, then quick rules */
+.hcard.soon{opacity:.55;box-shadow:none}
 .hcard.play:hover{background:var(--sheet);border-color:var(--sea)}
 .field #fname{width:100%;border:1.5px solid var(--ink);border-radius:5px;padding:12px;font-size:1.05rem;background:var(--paper)}
 .dplay{width:100%;display:flex;flex-direction:column;gap:10px;margin-top:8px}
@@ -322,7 +323,8 @@ function homeHTML(){const key=todayKey(),num=dayNum(key,T10_FIRST),d=dailySaved(
     daily=`<div class="hcard ac play"><span class="hm">#${num} · ${dateLabel(key)}</span><span class="ht">Today's list</span><span class="hs">${d?'You started it: keep going.':'The same ranking for everyone, one try. Type a country to start.'}</span><div class="dplay">${askHTML()}${listHTML()}</div></div>`}
   return header('Top <span>10</span>','',true)+`<section class="home">${daily}
     <div class="hrow"><button class="hcard" data-go="free"><span class="ht">Solo</span><span class="hs">Practice on unlimited lists, at your pace.</span></button>
-    <button class="hcard" data-go="friends"><span class="ht">With friends</span><span class="hs">Play online, 2 to ${MAXP} players.</span></button></div></section>
+    <!-- With friends is switched off for now (the online rooms code stays for later; a shared ?room= link still opens a room) -->
+    <div class="hcard soon" aria-disabled="true"><span class="ht">With friends</span><span class="hs">Play online, 2 to ${MAXP} players.</span><span class="hm">(coming soon)</span></div></div></section>
     ${quickRules(' Full rules in <b>How to play</b>.')}`}
 function goHome(){if(roomCode){if(!confirm('Leave the room and go to the home screen?'))return;leaveRoom().then(()=>{view='home';render()});return}
   view='home';toastMsg=null;drawToast();query='';render();window.scrollTo(0,0)}
@@ -388,7 +390,7 @@ function rulesHTML(){return `<h3>The idea</h3><ul>
   <h3>Modes</h3><ul>
   <li><b>Today's list</b>: the same for everyone, new every day at midnight CET, open on the home screen. One try, saved on this device.</li>
   <li><b>Solo</b>: unlimited practice lists. Share sends a link to the same list.</li>
-  <li><b>With friends</b>: online rooms for 2 to ${MAXP} players, each on their own phone. Everyone plays the same list and takes turns naming one country: a country in the top 10 scores a point, one outside costs a life, and you can pass. The game ends when the ten are found, when everyone is out of lives or when everyone passes in a row; most countries found wins (on a tie, fewer mistakes). The host can also end it.</li></ul>`}
+  <li><b>With friends</b>: online rooms, coming soon.</li></ul>`}
 function drawSugg(){const u=$('sugg');if(u){u.innerHTML=suggHTML();u.querySelectorAll('[data-g]').forEach(b=>b.onclick=()=>guess(b.dataset.g))}}
 function bind(){
   if($('daily'))$('daily').onclick=openDaily;
