@@ -1,4 +1,6 @@
-# Top 10
+# Top 10 (Geomingo)
+
+Part of [Geomingo](https://hectorei19.github.io/geo-games/). Colours, fonts, Mingo, the header and the result window come from `../geo-games/brand/` (repository hectorei19/geo-games); `games.js`, `minigames.js` and `style.css` are shared copies with Connections and Silhouette.
 
 Geography quiz: name the ten countries of a ranking ("The 10 most populous countries", "The 10 countries with the longest coastline"...). A country outside the top 10 costs one of 3 lives.
 
