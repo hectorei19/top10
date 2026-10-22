@@ -4,7 +4,7 @@ Part of [Geomingo](https://hectorei19.github.io/geo-games/). Colours, fonts, Min
 
 Geography quiz: name the ten countries of a ranking ("The 10 most populous countries", "The 10 countries with the longest coastline"...). A country outside the top 10 costs one of 3 lives.
 
-Part of [Geomingo](https://hectorei19.github.io/geo-games/), daily geography games, each its own website: [Countries](https://hectorei19.github.io/country-grid/), [Connections](https://hectorei19.github.io/connections/) and [Top 10](https://hectorei19.github.io/top10/).
+Part of [Geomingo](https://hectorei19.github.io/geo-games/), daily geography games, each its own website: [Countries](https://hectorei19.github.io/country-grid/), [Cities](https://hectorei19.github.io/city-grid/), [Connections](https://hectorei19.github.io/connections/) and [Top 10](https://hectorei19.github.io/top10/).
 
 - The page opens on today's list, open and playable on the home screen (like Countries' grid), with Solo and With friends below.
 - Today's list: the same for everyone, new at midnight CET (Spain), one try. Lists come in a shuffled order, so none repeats until all have been used.
