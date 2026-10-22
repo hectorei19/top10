@@ -2,7 +2,7 @@
 
 Geography quiz: name the ten countries of a ranking ("The 10 most populous countries", "The 10 countries with the longest coastline"...). A country outside the top 10 costs one of 3 lives.
 
-Part of a family of three games, each its own website: [Borderline](https://hectorei19.github.io/borderline/), [Connections](https://hectorei19.github.io/connections/) and [Top 10](https://hectorei19.github.io/top10/).
+Part of a family of three games, each its own website: [Country Grid](https://hectorei19.github.io/country-grid/), [Connections](https://hectorei19.github.io/connections/) and [Top 10](https://hectorei19.github.io/top10/).
 
 - The page opens on today's list, open and playable on the home screen (like Borderline's grid), with Solo and With friends below.
 - Today's list: the same for everyone, new at midnight CET (Spain), one try. Lists come in a shuffled order, so none repeats until all have been used.
@@ -21,4 +21,4 @@ Files:
 
 Publishing a new version: change the `?v=` number after the four files in `index.html`, so phones load the new files.
 
-Data sources and licences: see Credits in [Borderline](https://hectorei19.github.io/borderline/).
+Data sources and licences: see Credits in [Country Grid](https://hectorei19.github.io/country-grid/).
