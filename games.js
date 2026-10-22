@@ -1,8 +1,9 @@
 // Games menu: a button at the top left lists the games, marks the ones played today and links to the Geo Games home page.
-// Each game is its own website (hectorei19.github.io/country-grid, /connections, /top10, /silhouette), each with a copy of this file:
+// Each game is its own website (hectorei19.github.io/country-grid, /city-grid, /connections, /top10, /silhouette), each with a copy of this file:
 // change it in one, copy it to the others. They share one origin, so "played" is read from each game's save on this device.
 const GAMES=[
   {id:'borderline',name:'Country Grid',href:'../country-grid/',hint:'Fill the grid of countries'},
+  {id:'citygrid',name:'City Grid',href:'../city-grid/',hint:'Fill the grid of cities'},
   {id:'connections',name:'Connections',href:'../connections/',hint:'Find the four groups of four'},
   {id:'top10',name:'Top 10',href:'../top10/',hint:'Name the ten countries of a ranking'},
   {id:'silhouette',name:'Silhouette',href:'../silhouette/',hint:'Name the countries from their shapes'}];
@@ -10,10 +11,10 @@ const GAMES=[
 const MORE_GAMES='https://hectorei19.github.io/geo-games/';
 const GAME_HERE=document.documentElement.dataset.game||'borderline';
 function gamesDay(){const p=madridParts(Date.now());return p.year+'-'+p.month+'-'+p.day}
-// the daily game of each page: Country Grid keeps bl-daily and bl-hist, the others cx-daily, t10-daily and sil-daily
+// the daily game of each page: Country Grid keeps bl-daily and bl-hist, City Grid (the same game) cc-daily and cc-hist, the others cx-daily, t10-daily and sil-daily
 function playedToday(id){const k=gamesDay();try{
-  if(id==='borderline'){const h=JSON.parse(localStorage.getItem('bl-hist')||'{}')||{};if(h[k]&&h[k].f!==0)return true;
-    const d=JSON.parse(localStorage.getItem('bl-daily')||'null');return !!(d&&d.date===k&&d.S&&d.S.over)}
+  if(id==='borderline'||id==='citygrid'){const x=id==='borderline'?'bl':'cc',h=JSON.parse(localStorage.getItem(x+'-hist')||'{}')||{};if(h[k]&&h[k].f!==0)return true;
+    const d=JSON.parse(localStorage.getItem(x+'-daily')||'null');return !!(d&&d.date===k&&d.S&&d.S.over)}
   const d=JSON.parse(localStorage.getItem({connections:'cx-daily',top10:'t10-daily',silhouette:'sil-daily'}[id])||'null');return !!(d&&d.date===k&&d.over)}catch(e){return false}}
 // the next game of the day not played yet, in menu order after this one (null when all are done)
 function nextGame(cur){const i=GAMES.findIndex(g=>g.id===cur);
