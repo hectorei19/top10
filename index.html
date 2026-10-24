@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<style>body{margin:0}img{max-width:100%}[hidden]{display:none!important}:root{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}/* home screen, as in Borderline: today's list open and playable, then Solo and With friends, then quick rules */
+<style>body{margin:0}img{max-width:100%}[hidden]{display:none!important}:root{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}/* home screen, as in Countries: today's list open and playable, then Solo and With friends, then quick rules */
 .hcard.soon{opacity:.55;box-shadow:none}
 .hcard.play:hover{background:var(--sheet);border-color:var(--sea)}
 .field #fname{width:100%;border:1.5px solid var(--ink);border-radius:5px;padding:12px;font-size:1.05rem;background:var(--paper)}
@@ -11,11 +11,26 @@
 .wrongs .pin{display:inline-block;vertical-align:middle}
 .t10list .nm .pin{flex:none}
 </style>
-<title>Top 10 · Borderline</title>
+<title>Top 10 · Geomingo</title>
+<meta name="description" content="Name the 10 countries of a ranking with 3 lives. A new list every day. Daily geography games from Geomingo.">
+<meta name="theme-color" content="#F6F8F5">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="Geomingo">
+<meta property="og:title" content="Top 10 · Geomingo">
+<meta property="og:description" content="Name the 10 countries of a ranking. 3 lives. A new list every day.">
+<meta property="og:url" content="https://hectorei19.github.io/top10/">
+<meta property="og:image" content="https://hectorei19.github.io/geo-games/brand/og.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta name="twitter:card" content="summary_large_image">
+<link rel="icon" href="../geo-games/brand/icons/favicon.svg?v=202610240100" type="image/svg+xml">
+<link rel="icon" href="../geo-games/brand/icons/favicon-32.png?v=202610240100" sizes="32x32" type="image/png">
+<link rel="apple-touch-icon" href="../geo-games/brand/icons/apple-touch-icon.png?v=202610240100">
+<script src="../geo-games/brand/mingo.js?v=202610240100"></script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Big+Shoulders+Display:wght@700;900&family=Barlow+Semi+Condensed:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap">
-<link rel="stylesheet" href="style.css?v=202610192300">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@62..125,400;62..125,600;62..125,800;62..125,900&family=Public+Sans:wght@400;500;600;700&family=Courier+Prime:wght@400;700&display=swap">
+<link rel="stylesheet" href="style.css?v=202610240100">
 <style>
 /* Top 10: a ranked list with ten empty rows that fill in as you name the countries */
 .t10q{font-family:var(--display);font-weight:900;text-transform:uppercase;font-size:1.9rem;line-height:1;letter-spacing:.02em;margin:0;text-wrap:balance}
@@ -38,11 +53,21 @@
 .lives .cnt{margin-left:auto;font-family:var(--mono);font-size:.8rem}
 .wrongs{margin:0;font-size:.92rem;color:var(--ink-2)}
 .modes{max-width:320px;width:100%;align-self:center}
+/* Geomingo look for the list */
+.t10q{font-family:var(--display);font-weight:600;text-transform:none;letter-spacing:0;font-size:1.6rem;line-height:1.1}
+.t10list{border:2px solid var(--line);border-radius:18px;box-shadow:none}
+.t10list li{border-top:2px dashed var(--line)}
+.t10list .rk{font-family:var(--display);font-weight:700;color:var(--flamingo-text)}
+.t10list li.on{background:var(--lagoon-soft)}
+.t10list .val{font-family:var(--body);font-weight:700}
+.lives i{background:var(--flamingo)}
+.lives .cnt{font-family:var(--body);font-weight:800}
 </style>
+<link rel="stylesheet" href="../geo-games/brand/geomingo.css?v=202610240100">
 </head>
 <body>
 <div class="wrap" id="app"></div>
-<footer class="foot"><a class="linkbtn" href="../borderline/">Data and sources: Credits in Borderline</a></footer>
+<footer class="foot"><a class="linkbtn" href="../country-grid/">Data and sources: Credits in Countries</a></footer>
 <div id="layer"></div>
 
 <!-- online rooms (With friends): Firebase, loaded after the page so today's list shows at once -->
@@ -50,11 +75,11 @@
 <script defer src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js"></script>
 <script defer src="firebase-config.js?v=202610192300"></script>
 <script src="data.js?v=202610192300"></script>
-<script src="games.js?v=202610222130"></script>
-<script src="minigames.js?v=202610222130"></script>
+<script src="games.js?v=202610240100"></script>
+<script src="minigames.js?v=202610240100"></script>
 <script>
 /* ---- the rankings ----
-   Only numbers Borderline already uses (DATA and the country data), with the sources named in its Credits.
+   Only numbers Countries already uses (DATA and the country data), with the sources named in its Credits.
    Independent countries only. A list is used only when the 10th and 11th places are not tied. */
 const T10_FIRST='2026-10-19',LIVES=3;
 const SOVC=C.filter(c=>!c.t);
@@ -63,7 +88,7 @@ const ppl=v=>v>=1e9?(v/1e9).toFixed(2)+' billion':v>=1e6?(v/1e6).toFixed(1)+' mi
 const d1=v=>(+v).toFixed(1);
 const num=v=>typeof v==='number'&&isFinite(v)?v:undefined;
 const D=k=>c=>num(DATA[k][c.c]);
-const AREANOTE='Total area (land and inland water), from the country data used in Borderline (mledoze/countries).';
+const AREANOTE='Total area (land and inland water), from the country data used in Countries (mledoze/countries).';
 const L=(id,title,get,dir,fmt,src)=>({id,title,get,dir,fmt,src});
 const ALL_LISTS=[
   L('pop-hi','The 10 most populous countries',D('pop'),-1,ppl,POPNOTE),
@@ -118,35 +143,38 @@ function openFree(id){view='game';mode='free';const f=load('t10-free',null);
   else{const l=id&&listById(id)||(()=>{const o=LISTS.filter(x=>!S||x.id!==S.list);return o[Math.floor(Math.random()*o.length)]})();S=newGame('free',l)}
   query='';save();render();window.scrollTo(0,0)}
 
-/* ---- the search box: names only, found by their first letters, like Borderline ---- */
+/* ---- the search box: names only, found by their first letters, like Countries ---- */
 function matches(q){const k=N(q);if(!k)return[];return SOVC.filter(c=>c.k.startsWith(k)||c.ak.some(a=>a.startsWith(k))).slice(0,8)}
 function suggHTML(){if(!query)return '';const res=matches(query);
   if(!res.length)return `<li class="hint" style="padding:8px 2px">No country matches “${esc(query)}”.</li>`;
   return res.map(c=>{const f=S.found.includes(c.c),w=S.wrong.includes(c.c);
     return `<li><button data-g="${c.c}" ${f||w?'disabled':''}>${esc(c.n)}${f?'<span class="tag">found</span>':w?'<span class="tag">not in it</span>':''}</button></li>`}).join('')}
+// Mingo's key for the game on screen (his bubble and the result window belong to one game)
+const tKey=()=>S?S.mode+':'+(S.date||'')+':'+S.list+':'+(roomCode||''):'';
+const livesTxt=()=>S.lives+' li'+(S.lives===1?'fe':'ves')+' left.';
 function guess(code){if(!S||S.over)return;const c=byCode[code];
-  if(S.found.includes(code)||S.wrong.includes(code)){toast('You already tried '+c.n+'.');return}
+  if(S.found.includes(code)||S.wrong.includes(code)){say(tKey(),'think','Hold on.',c.n+' is already in your pages.');render();return}
   query='';typing=true;
   if(S.mode==='online'){onlineGuess(code);return}
   const i=S.top.indexOf(code);
-  if(i>=0){S.found.push(code);fresh=code;if(S.found.length===10){S.over=true;S.won=true}}
+  if(i>=0){S.found.push(code);fresh=code;Geomingo.stamp('top10',c.n,'#'+(i+1));if(S.found.length===10){S.over=true;S.won=true}}
   else{S.wrong.push(code);S.lives--;if(S.lives<=0)S.over=true}
   // today's list played on the home screen: when it ends, the result opens on its own screen
   if(S.over&&view==='home')view='game';
   save();render();if(S.over)window.scrollTo(0,0);
-  if(i>=0){toast(S.won?'All ten!':`#${i+1} · ${c.n}`,'good');return}
+  if(i>=0){if(!S.over){say(tKey(),'happy','Stamped: '+c.n+', #'+(i+1)+'.',(10-S.found.length)+' to go.');render()}return}
   const r=ranking(listById(S.list)).findIndex(x=>x.c===code);
-  toast(`${c.n} is not in the top 10${r>=0?` (it is #${r+1})`:' (no figure for it)'}.`,'bad')}
+  if(!S.over){say(tKey(),'sad','Denied entry.',`${c.n} is not in the top 10${r>=0?` (it is #${r+1})`:' (no figure for it)'}. `+livesTxt());render()}}
 
 /* ---- share ---- */
 function shareText(){const l=listById(S.list);
   const sq=S.top.map(c=>S.found.includes(c)?'🟩':'⬜').join(''),hearts='❤️'.repeat(S.lives)+'🖤'.repeat(LIVES-S.lives);
-  return `${S.mode==='daily'?'Borderline Top 10 #'+S.num:'Borderline Top 10 (practice)'} — ${S.found.length}/10\n${l.title}\n${sq} ${hearts}`}
+  return `${S.mode==='daily'?Geomingo.share('Top 10')+' #'+S.num:Geomingo.share('Top 10')+' (practice)'} — ${S.found.length}/10\n${l.title}\n${sq} ${hearts}`}
 const shareLink=()=>S.mode==='daily'?pageLink():pageLink('?l='+S.list);
 const shareMessage=()=>shareText()+'\n\n'+(S.mode==='daily'?"Play today's Top 10: ":'Play this list: ')+shareLink();
 
-/* ---- online rooms (With friends), on the same Firebase Realtime Database as Borderline ----
-   A room lives at rooms/ABCD, like Borderline's, marked game:'top10' so the two games never open each other's rooms.
+/* ---- online rooms (With friends), on the same Firebase Realtime Database as Countries ----
+   A room lives at rooms/ABCD, like Countries', marked game:'top10' so the two games never open each other's rooms.
    Players take turns naming a country: one in the top 10 scores a point for whoever named it,
    one outside costs that player one of their lives. The game ends when the ten are found, everyone is out of lives or everyone passes. */
 const FB_OK=()=>typeof firebase!=='undefined'&&typeof firebase.database==='function'&&!!(window.FIREBASE_CONFIG&&/^https:\/\//.test(FIREBASE_CONFIG.databaseURL||''));
@@ -154,7 +182,7 @@ const ROOM_V='t10-202610192300',MAXP=6,TIMERS=[0,15,30];
 let db=null,room=null,roomRef=null,roomCode=null,seenEv=null,firstSync=true,joining=false,offset=0,tick=null;
 const now=()=>Date.now()+offset;
 let ME=load('t10-pid','');if(!ME){ME='p'+Math.random().toString(36).slice(2,10);store('t10-pid',ME)}
-// the name the others see: the one typed here before, or the one used in Borderline's rooms on this device
+// the name the others see: the one typed here before, or the one used in Countries' rooms on this device
 const setup={fname:'',timer:0,join:'',...load('t10-setup',{})};
 if(!setup.fname)try{setup.fname=(JSON.parse(localStorage.getItem('bl-setup')||'{}')||{}).fname||localStorage.getItem('bl-user')||''}catch(e){}
 if(!TIMERS.includes(setup.timer))setup.timer=0;
@@ -199,7 +227,7 @@ async function joinRoom(raw){
     const val=res.snapshot.val();
     if(!val){toast('No room called '+code+'. Check the code.','bad');return}
     if(!res.committed||!val.players||!val.players[ME]){
-      toast(why==='other'?code+' is a room of another game (Borderline?). Open that game to join it.':why==='version'?'You and the host have different versions of the game. Both of you reload the page, then try again.':why==='full'?'Room '+code+' already has '+MAXP+' players.':why==='started'?'That game has already started. Ask the host for a rematch.':'Could not join '+code+'.','bad');return}
+      toast(why==='other'?code+' is a room of another game (Countries?). Open that game to join it.':why==='version'?'You and the host have different versions of the game. Both of you reload the page, then try again.':why==='full'?'Room '+code+' already has '+MAXP+' players.':why==='started'?'That game has already started. Ask the host for a rematch.':'Could not join '+code+'.','bad');return}
     listenRoom(code)}catch(e){console.error(e);toast('Could not join. Check the connection and try again.','bad')}
   finally{joining=false}}
 function listenRoom(code){
@@ -318,10 +346,13 @@ function homeHTML(){const key=todayKey(),num=dayNum(key,T10_FIRST),d=dailySaved(
     // played: green for the places you found, grey for the rest, like the shared result; tap to see the list
     daily=`<button class="hcard" id="daily"><span class="hm">Today's list #${num} · done</span><span class="dsum"><span class="dsq" style="grid-template-columns:repeat(5,1fr)" aria-hidden="true">${d.top.map(c=>`<i class="${d.found.includes(c)?'on':''}"></i>`).join('')}</span><span class="dtxt"><span class="ht">${d.found.length} of 10</span><span class="hs">${d.won?`${d.lives} li${d.lives===1?'fe':'ves'} left`:'countries found'}</span></span><span class="dstats"><span><b>${streakOf(h)}</b>streak</span><span><b>${days.length}</b>played</span><span><b>${days.reduce((m,k)=>Math.max(m,h[k].f),0)}</b>best</span></span></span><span class="hs">Tap to see the full list and share your result.</span><span class="hm">Next list in ${nextIn()}</span></button>`;
   else{
-    // not played yet: today's list is open right here, as Borderline shows today's grid
+    // not played yet: today's list is open right here, as Countries shows today's grid
     mode='daily';if(!S||S.mode!=='daily'||S.date!==key)S=dailyGame();
     daily=`<div class="hcard ac play"><span class="hm">#${num} · ${dateLabel(key)}</span><span class="ht">Today's list</span><span class="hs">${d?'You started it: keep going.':'The same ranking for everyone, one try. Type a country to start.'}</span><div class="dplay">${askHTML()}${listHTML()}</div></div>`}
-  return header('Top <span>10</span>','',true)+`<section class="home">${daily}
+  const st=Geomingo.streak();
+  const hi=d&&d.over?Geomingo.hello(d.found.length>=6?'happy':'think',d.found.length>=6?'Stamped for today.'+(st>1?' '+st+'-day streak.':''):'Rough crossing today.',`Today's list is done. Next one in ${nextIn()}.`)
+    :moodHTML(tKey(),d?'think':'pass',d?'Your list is waiting.':'GeoPass ready.',d?'Keep going: type a country. One try.':'Type a country to start. Every one in the top 10 is a stamp. One try, the same ranking for everyone.');
+  return header('Top <span>10</span>','',true)+`<section class="home">${hi}${daily}
     <div class="hrow"><button class="hcard" data-go="free"><span class="ht">Solo</span><span class="hs">Practice on unlimited lists, at your pace.</span></button>
     <!-- With friends is switched off for now (the online rooms code stays for later; a shared ?room= link still opens a room) -->
     <div class="hcard soon" aria-disabled="true"><span class="ht">With friends</span><span class="hs">Play online, 2 to ${MAXP} players.</span><span class="hm">(coming soon)</span></div></div></section>
@@ -361,6 +392,8 @@ function onlineHTML(){const cur=S.players[S.turn]||{};
   h+=`<div class="row-btns">${S.host&&!S.over?'<button class="ghost" id="oend" style="flex:1">End game</button>':''}<button class="ghost" id="leave" style="flex:1">Leave room</button></div>`;
   return h}
 function render(){
+  // today's list is played on the home screen too: the result window follows the game, whatever the screen
+  if(S&&S.mode!=='online')watchResult(tKey(),S.over,resultWindow);
   if(roomCode&&room){app.innerHTML=S&&S.mode==='online'?onlineHTML():lobbyHTML();bind();return}
   if(view==='home'){app.innerHTML=homeHTML();bind();return}
   if(view==='friends'){app.innerHTML=friendsHTML();bind();return}
@@ -369,13 +402,21 @@ function render(){
   let h=header('Top <span>10</span>',S.mode==='daily'?'Daily #'+S.num:'Solo');
   h+=`<div class="backline"><button class="linkbtn" id="home">← Back</button><span class="ht">${S.mode==='daily'?"Today's list":'Solo'}</span></div>`;
   if(S.over)h+=resultHTML();
+  else h+=moodHTML(tKey(),'pass','10 stamps to win.','In any order. A country outside the top 10 costs a life. '+livesTxt());
   h+=`<section class="panel">${askHTML()}</section>${listHTML()}`;
   if(!S.over)h+=quickRules();
   app.innerHTML=h;bind();
 }
-function resultHTML(){
+// Mingo's verdict, for the result panel and the result window
+function verdict(){const f=S.found.length;
+  return S.won?(S.lives===LIVES?{pose:'happy',t:'Full page. Perfect ten.',s:'Not a single life lost.'}:{pose:'happy',t:'Landed. All ten.',s:livesTxt()})
+    :f>=6?{pose:'think',t:'So close. '+f+' of 10.',s:'No lives left. The full list is below.'}:{pose:'sad',t:'Rough crossing, this one.',s:f+' of 10 found. The full list is below.'}}
+function resultWindow(){const v=verdict(),daily=S.mode==='daily';
+  return {game:'top10',pose:v.pose,title:v.t,num:S.found.length+'/10',unit:'Found',mini:Geomingo.mini(S.top.map(c=>S.found.includes(c)),5),
+    sub:listById(S.list).title+'.'+(daily?` Next list in ${nextIn()}.`:''),share:()=>share(shareMessage()),next:daily?Geomingo.nextGame('top10'):null,allDone:daily,close:'See the list'}}
+function resultHTML(){const v=verdict();
   const head=S.won?(S.lives===LIVES?'Perfect ten!':'All ten found'):`${S.found.length} of 10`;
-  return `<section class="panel"><span class="label">${S.mode==='daily'?'Top 10 #'+S.num:'Practice list'}</span><p class="big">${head}</p>
+  return `<section class="panel">${Geomingo.hello(v.pose,v.t,v.s,{key:'res'})}<span class="label">${S.mode==='daily'?'Top 10 #'+S.num:'Practice list'}</span><p class="big">${head}</p>
     <p class="hint">${S.won?`You named the whole list with ${S.lives} li${S.lives===1?'fe':'ves'} left.`:'No lives left. The full list is below.'} ${S.mode==='daily'?`Next list in ${nextIn()}.`:''}</p>
     <pre class="sharebox" id="share">${esc(shareText())}</pre>
     <div class="row-btns"><button class="ghost" id="copy" style="flex:1">Share</button><button class="ghost" id="again" style="flex:1">${S.mode==='daily'?'Practice list':'New list'}</button></div>
@@ -386,7 +427,7 @@ function rulesHTML(){return `<h3>The idea</h3><ul>
   <li>Name the ten countries in the ranking, in any order. Each one you find appears in its place, with its figure.</li>
   <li>A country that is not in the top 10 costs one of your <b>${LIVES} lives</b>, and you see where it ranks.</li>
   <li>The game ends when you find all ten or run out of lives; then the full list is shown.</li>
-  <li>Only independent countries count, never territories. The figures are the same ones Borderline uses; "Where the numbers come from" names the source of each list.</li></ul>
+  <li>Only independent countries count, never territories. The figures are the same ones Countries uses; "Where the numbers come from" names the source of each list.</li></ul>
   <h3>Modes</h3><ul>
   <li><b>Today's list</b>: the same for everyone, new every day at midnight CET, open on the home screen. One try, saved on this device.</li>
   <li><b>Solo</b>: unlimited practice lists. Share sends a link to the same list.</li>
