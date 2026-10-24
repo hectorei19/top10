@@ -13,7 +13,7 @@
 </style>
 <title>Top 10 · Geomingo</title>
 <meta name="description" content="Name the 10 countries of a ranking with 3 lives. A new list every day. Daily geography games from Geomingo.">
-<meta name="theme-color" content="#FFF6EE">
+<meta name="theme-color" content="#F6F8F5">
 <meta property="og:type" content="website">
 <meta property="og:site_name" content="Geomingo">
 <meta property="og:title" content="Top 10 · Geomingo">
@@ -23,14 +23,14 @@
 <meta property="og:image:width" content="1200">
 <meta property="og:image:height" content="630">
 <meta name="twitter:card" content="summary_large_image">
-<link rel="icon" href="../geo-games/brand/icons/favicon.svg?v=202610230100" type="image/svg+xml">
-<link rel="icon" href="../geo-games/brand/icons/favicon-32.png?v=202610230100" sizes="32x32" type="image/png">
-<link rel="apple-touch-icon" href="../geo-games/brand/icons/apple-touch-icon.png?v=202610230100">
-<script src="../geo-games/brand/mingo.js?v=202610230100"></script>
+<link rel="icon" href="../geo-games/brand/icons/favicon.svg?v=202610240100" type="image/svg+xml">
+<link rel="icon" href="../geo-games/brand/icons/favicon-32.png?v=202610240100" sizes="32x32" type="image/png">
+<link rel="apple-touch-icon" href="../geo-games/brand/icons/apple-touch-icon.png?v=202610240100">
+<script src="../geo-games/brand/mingo.js?v=202610240100"></script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600;700&family=Nunito:wght@400;600;700;800&display=swap">
-<link rel="stylesheet" href="style.css?v=202610230200">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@62..125,400;62..125,600;62..125,800;62..125,900&family=Public+Sans:wght@400;500;600;700&family=Courier+Prime:wght@400;700&display=swap">
+<link rel="stylesheet" href="style.css?v=202610240100">
 <style>
 /* Top 10: a ranked list with ten empty rows that fill in as you name the countries */
 .t10q{font-family:var(--display);font-weight:900;text-transform:uppercase;font-size:1.9rem;line-height:1;letter-spacing:.02em;margin:0;text-wrap:balance}
@@ -63,7 +63,7 @@
 .lives i{background:var(--flamingo)}
 .lives .cnt{font-family:var(--body);font-weight:800}
 </style>
-<link rel="stylesheet" href="../geo-games/brand/geomingo.css?v=202610230100">
+<link rel="stylesheet" href="../geo-games/brand/geomingo.css?v=202610240100">
 </head>
 <body>
 <div class="wrap" id="app"></div>
@@ -75,8 +75,8 @@
 <script defer src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js"></script>
 <script defer src="firebase-config.js?v=202610192300"></script>
 <script src="data.js?v=202610192300"></script>
-<script src="games.js?v=202610230200"></script>
-<script src="minigames.js?v=202610230200"></script>
+<script src="games.js?v=202610240100"></script>
+<script src="minigames.js?v=202610240100"></script>
 <script>
 /* ---- the rankings ----
    Only numbers Countries already uses (DATA and the country data), with the sources named in its Credits.
@@ -153,18 +153,18 @@ function suggHTML(){if(!query)return '';const res=matches(query);
 const tKey=()=>S?S.mode+':'+(S.date||'')+':'+S.list+':'+(roomCode||''):'';
 const livesTxt=()=>S.lives+' li'+(S.lives===1?'fe':'ves')+' left.';
 function guess(code){if(!S||S.over)return;const c=byCode[code];
-  if(S.found.includes(code)||S.wrong.includes(code)){say(tKey(),'think','Good one, but you tried it!','You already named '+c.n+'.');render();return}
+  if(S.found.includes(code)||S.wrong.includes(code)){say(tKey(),'think','Hold on.',c.n+' is already in your pages.');render();return}
   query='';typing=true;
   if(S.mode==='online'){onlineGuess(code);return}
   const i=S.top.indexOf(code);
-  if(i>=0){S.found.push(code);fresh=code;if(S.found.length===10){S.over=true;S.won=true}}
+  if(i>=0){S.found.push(code);fresh=code;Geomingo.stamp('top10',c.n,'#'+(i+1));if(S.found.length===10){S.over=true;S.won=true}}
   else{S.wrong.push(code);S.lives--;if(S.lives<=0)S.over=true}
   // today's list played on the home screen: when it ends, the result opens on its own screen
   if(S.over&&view==='home')view='game';
   save();render();if(S.over)window.scrollTo(0,0);
-  if(i>=0){if(!S.over){say(tKey(),'happy',['Yes! ','Spot on! ','Great pick! '][S.found.length%3]+c.n+' is #'+(i+1)+'.',(10-S.found.length)+' to go.');render()}return}
+  if(i>=0){if(!S.over){say(tKey(),'happy','Stamped: '+c.n+', #'+(i+1)+'.',(10-S.found.length)+' to go.');render()}return}
   const r=ranking(listById(S.list)).findIndex(x=>x.c===code);
-  if(!S.over){say(tKey(),'sad','Not quite.',`${c.n} is not in the top 10${r>=0?` (it is #${r+1})`:' (no figure for it)'}. `+livesTxt());render()}}
+  if(!S.over){say(tKey(),'sad','Denied entry.',`${c.n} is not in the top 10${r>=0?` (it is #${r+1})`:' (no figure for it)'}. `+livesTxt());render()}}
 
 /* ---- share ---- */
 function shareText(){const l=listById(S.list);
@@ -350,8 +350,8 @@ function homeHTML(){const key=todayKey(),num=dayNum(key,T10_FIRST),d=dailySaved(
     mode='daily';if(!S||S.mode!=='daily'||S.date!==key)S=dailyGame();
     daily=`<div class="hcard ac play"><span class="hm">#${num} · ${dateLabel(key)}</span><span class="ht">Today's list</span><span class="hs">${d?'You started it: keep going.':'The same ranking for everyone, one try. Type a country to start.'}</span><div class="dplay">${askHTML()}${listHTML()}</div></div>`}
   const st=Geomingo.streak();
-  const hi=d&&d.over?Geomingo.hello(d.found.length>=6?'happy':'think',d.found.length>=6?(st>1?'Nice one! '+st+' days in a row.':'Nice one!'):'Tough one today.',`Today's list is done. Next one in ${nextIn()}.`)
-    :moodHTML(tKey(),d?'think':'hello',d?'Your list is waiting.':'Ready for today\'s list?',d?'Keep going: type a country. One try.':'Type a country to start. One try, the same ranking for everyone.');
+  const hi=d&&d.over?Geomingo.hello(d.found.length>=6?'happy':'think',d.found.length>=6?'Stamped for today.'+(st>1?' '+st+'-day streak.':''):'Rough crossing today.',`Today's list is done. Next one in ${nextIn()}.`)
+    :moodHTML(tKey(),d?'think':'pass',d?'Your list is waiting.':'GeoPass ready.',d?'Keep going: type a country. One try.':'Type a country to start. Every one in the top 10 is a stamp. One try, the same ranking for everyone.');
   return header('Top <span>10</span>','',true)+`<section class="home">${hi}${daily}
     <div class="hrow"><button class="hcard" data-go="free"><span class="ht">Solo</span><span class="hs">Practice on unlimited lists, at your pace.</span></button>
     <!-- With friends is switched off for now (the online rooms code stays for later; a shared ?room= link still opens a room) -->
@@ -402,18 +402,18 @@ function render(){
   let h=header('Top <span>10</span>',S.mode==='daily'?'Daily #'+S.num:'Solo');
   h+=`<div class="backline"><button class="linkbtn" id="home">← Back</button><span class="ht">${S.mode==='daily'?"Today's list":'Solo'}</span></div>`;
   if(S.over)h+=resultHTML();
-  else h+=moodHTML(tKey(),'hello','Name the ten countries.','In any order. A country outside the top 10 costs a life. '+livesTxt());
+  else h+=moodHTML(tKey(),'pass','10 stamps to win.','In any order. A country outside the top 10 costs a life. '+livesTxt());
   h+=`<section class="panel">${askHTML()}</section>${listHTML()}`;
   if(!S.over)h+=quickRules();
   app.innerHTML=h;bind();
 }
 // Mingo's verdict, for the result panel and the result window
 function verdict(){const f=S.found.length;
-  return S.won?(S.lives===LIVES?{pose:'happy',t:'Perfect ten! Mingo is impressed.',s:'Not a single life lost.'}:{pose:'happy',t:'All ten! Nice one.',s:livesTxt()})
-    :f>=6?{pose:'think',t:'So close! '+f+' of 10.',s:'No lives left. The full list is below.'}:{pose:'sad',t:'Tough list, this one.',s:f+' of 10 found. The full list is below.'}}
+  return S.won?(S.lives===LIVES?{pose:'happy',t:'Full page. Perfect ten.',s:'Not a single life lost.'}:{pose:'happy',t:'Landed. All ten.',s:livesTxt()})
+    :f>=6?{pose:'think',t:'So close. '+f+' of 10.',s:'No lives left. The full list is below.'}:{pose:'sad',t:'Rough crossing, this one.',s:f+' of 10 found. The full list is below.'}}
 function resultWindow(){const v=verdict(),daily=S.mode==='daily';
-  return {pose:v.pose,title:v.t,num:S.found.length+'/10',unit:listById(S.list).title,mini:Geomingo.mini(S.top.map(c=>S.found.includes(c)),5),
-    sub:daily?`Next list in ${nextIn()}.`:'',share:()=>share(shareMessage()),next:daily?Geomingo.nextGame('top10'):null,allDone:daily,close:'See the list'}}
+  return {game:'top10',pose:v.pose,title:v.t,num:S.found.length+'/10',unit:'Found',mini:Geomingo.mini(S.top.map(c=>S.found.includes(c)),5),
+    sub:listById(S.list).title+'.'+(daily?` Next list in ${nextIn()}.`:''),share:()=>share(shareMessage()),next:daily?Geomingo.nextGame('top10'):null,allDone:daily,close:'See the list'}}
 function resultHTML(){const v=verdict();
   const head=S.won?(S.lives===LIVES?'Perfect ten!':'All ten found'):`${S.found.length} of 10`;
   return `<section class="panel">${Geomingo.hello(v.pose,v.t,v.s,{key:'res'})}<span class="label">${S.mode==='daily'?'Top 10 #'+S.num:'Practice list'}</span><p class="big">${head}</p>
